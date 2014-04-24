@@ -1,5 +1,5 @@
-/*
- * strdelim.h
+ /*
+ * gadgetd-create.h
  * Copyright (c) 2012-2014 Samsung Electronics Co., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,17 @@
  * limitations under the License.
  */
 
+#ifndef __GADGETD_CREATE_H__
+#define __GADGETD_CREATE_H__
+
+#include <stdint.h>
+#include <usbg/usbg.h>
+
 /**
- * @file strdelim.h
- * @brief
+ * @file gadgetd-create.h
+ * @brief gadget create
  */
 
+int create_gadget(void);
 
-char *strdelim(char **s);
+#endif /* __GADGETD_CREATE_H__ */

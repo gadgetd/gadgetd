@@ -1,5 +1,5 @@
 /*
- * strdelim.h
+ * gadgetd-remove.c
  * Copyright (c) 2012-2014 Samsung Electronics Co., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,23 @@
  * limitations under the License.
  */
 
+#include <usbg/usbg.h>
+#include <stdio.h>
+#include <errno.h>
+#include <string.h>
+
+#include <gadgetd-remove.h>
+
 /**
- * @file strdelim.h
- * @brief
+ * @file gadgetd-remove.c
+ * @brief remove gadget functions
  */
 
+void
+remove_gadget(void)
+{
 
-char *strdelim(char **s);
+	/*skel*/
+
+}
+

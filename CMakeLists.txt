@@ -1,5 +1,5 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
-PROJECT(gadgetd C)
+PROJECT(gadgetd)
 ########################################################
 # Generation options:
 # -DBUILD_DOC_ONLY - only doxygen documentation is build
@@ -20,8 +20,13 @@ ELSE(BUILD_DOC_ONLY)
 ENDIF(BUILD_DOC_ONLY)
 
 IF(BUILD_EXECUTABLE)
-	SET(SRCS
+
+	SET(GADGETD_SRCS
 		src/gadgetd.c
+		src/gadgetd-create.c
+		src/gadgetd-remove.c
+		src/gadgetd-config.c
+		src/strdelim.c
 	)
 
 	INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
@@ -34,6 +39,7 @@ IF(BUILD_EXECUTABLE)
 
 	SET(PKG_MODULES
 		libusbg
+		glib-2.0
 	)
 
 	INCLUDE(FindPkgConfig)
@@ -43,15 +49,15 @@ IF(BUILD_EXECUTABLE)
 		SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} ${flag}")
 	ENDFOREACH(flag)
 
-	SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${EXTRA_CFLAGS} -g -Wall")
+	SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${EXTRA_CFLAGS} -lusbg -g -Wall")
 	MESSAGE("FLAGS: ${CMAKE_C_FLAGS}")
 
 	ADD_DEFINITIONS("-DPREFIX=\"${PREFIX}\"")
 	ADD_DEFINITIONS("-DPACKAGE=\"${PACKAGE}\"")
 	ADD_DEFINITIONS("-DLOCALEDIR=\"${LOCALEDIR}\"")
 
-	ADD_EXECUTABLE(${PROJECT_NAME} ${SRCS})
-	TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${pkgs_LDFLAGS})
+	ADD_EXECUTABLE(${PROJECT_NAME} ${GADGETD_SRCS})
+	TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${pkgs_LDFLAGS} "-ldl -lgio-2.0 -lgobject-2.0 -lglib-2.0")
 
 	INSTALL(TARGETS ${PROJECT_NAME} DESTINATION ${BINDIR})
 
