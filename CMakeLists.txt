@@ -4,6 +4,7 @@ PROJECT(gadgetd)
 # Generation options:
 # -DBUILD_DOC_ONLY - only doxygen documentation is build
 # -DBUILD_DOC - build also doxygen documentation
+# -DSUPPORT_FFS_LEGACY_API - use legacy ffs API
 ########################################################
 
 ########################################################
@@ -27,6 +28,7 @@ IF(BUILD_EXECUTABLE)
 		src/gadgetd-remove.c
 		src/gadgetd-config.c
 		src/strdelim.c
+		src/ffs-service.c
 	)
 
 	INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
@@ -55,6 +57,10 @@ IF(BUILD_EXECUTABLE)
 	ADD_DEFINITIONS("-DPREFIX=\"${PREFIX}\"")
 	ADD_DEFINITIONS("-DPACKAGE=\"${PACKAGE}\"")
 	ADD_DEFINITIONS("-DLOCALEDIR=\"${LOCALEDIR}\"")
+
+	IF(SUPPORT_FFS_LEGACY_API)
+	        ADD_DEFINITIONS("-D__FFS_LEGACY_API_SUPPORT")
+	ENDIF(SUPPORT_FFS_LEGACY_API)
 
 	ADD_EXECUTABLE(${PROJECT_NAME} ${GADGETD_SRCS})
 	TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${pkgs_LDFLAGS} "-ldl -lgio-2.0 -lgobject-2.0 -lglib-2.0")
