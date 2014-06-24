@@ -5,6 +5,7 @@ PROJECT(gadgetd)
 # -DBUILD_DOC_ONLY - only doxygen documentation is build
 # -DBUILD_DOC - build also doxygen documentation
 # -DSUPPORT_FFS_LEGACY_API - use legacy ffs API
+# -DBUILD_EXAMPLES - build also sample applications
 ########################################################
 
 ########################################################
@@ -57,7 +58,7 @@ IF(BUILD_EXECUTABLE)
 		SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} ${flag}")
 	ENDFOREACH(flag)
 
-	SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${EXTRA_CFLAGS} -lusbg -g -Wall")
+	SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${EXTRA_CFLAGS} -g -Wall")
 	MESSAGE("FLAGS: ${CMAKE_C_FLAGS}")
 
 	ADD_DEFINITIONS("-DPREFIX=\"${PREFIX}\"")
@@ -69,7 +70,7 @@ IF(BUILD_EXECUTABLE)
 	ENDIF(SUPPORT_FFS_LEGACY_API)
 
 	ADD_EXECUTABLE(${PROJECT_NAME} ${GADGETD_SRCS})
-	TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${pkgs_LDFLAGS} "-ldl -lgio-2.0 -lgobject-2.0 -lglib-2.0")
+	TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${pkgs_LDFLAGS} "-lusbg -ldl -lgio-2.0 -lgobject-2.0 -lglib-2.0")
 
 	ADD_DEFINITIONS("-DGD_EXPORT_SYMBOLS")
 
@@ -86,7 +87,9 @@ IF(BUILD_EXECUTABLE)
 	        COMPONENT library)
 	INSTALL(FILES include/ffs-daemon.h DESTINATION ${INCLUDEDIR}/gadgetd)
 
-
+	IF(BUILD_EXAMPLES)
+	        ADD_SUBDIRECTORY(examples)
+	ENDIF(BUILD_EXAMPLES)
 ENDIF(BUILD_EXECUTABLE)
 
 IF(BUILD_DOC)
