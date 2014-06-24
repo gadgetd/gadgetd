@@ -16,11 +16,25 @@ Requires:       libusbg-0.1.0
 %description
 Gadgetd is a tool for USB gadget management.
 
+%package -n libffs-daemon
+License:        LGPL-2.0+
+Summary:        Library for ffs services
+
+%description -n libffs-daemon
+Library for all ffs services which should be activated on demand.
+
+%package -n libffs-daemon-devel
+License:        LGPL-2.0+
+Summary:        Development package for ffs services
+
+%description -n libffs-daemon-devel
+Develiopment library for all ffs services which should be activated on demand.
+
 %prep
 %setup -q
 cp %{SOURCE1001} .
 
-cmake .
+cmake . -DSUPPORT_FFS_LEGACY_API=1
 
 %build
 make
@@ -40,3 +54,11 @@ make
 %defattr(-,root,root)
 %license LICENSE
 /usr/local/bin/gadgetd
+
+%files -n libffs-daemon
+/usr/local/lib/libffs-daemon.so.0
+/usr/local/lib/libffs-daemon.so.0.0.0
+
+%files -n libffs-daemon-devel
+/usr/local/include/gadgetd/ffs-daemon.h
+/usr/local/lib/libffs-daemon.so
