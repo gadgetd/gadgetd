@@ -29,11 +29,21 @@ Summary:        Development package for ffs services
 %description -n libffs-daemon-devel
 Develiopment library for all ffs services which should be activated on demand.
 
+%package -n libffs-daemon-examples
+License:        Apache-2.0
+Summary:        Sample applications using libffs-daemon
+BuildRequires:  pkgconfig(libusb-1.0)
+BuildRequires:  libaio-devel
+
+%description -n libffs-daemon-examples
+Sample applications which demonstrates how to use libffs-daemon to write
+ffs services
+
 %prep
 %setup -q
 cp %{SOURCE1001} .
 
-cmake . -DSUPPORT_FFS_LEGACY_API=1
+cmake . -DSUPPORT_FFS_LEGACY_API=1 -DBUILD_EXAMPLES=1
 
 %build
 make
@@ -61,3 +71,7 @@ make
 %files -n libffs-daemon-devel
 /usr/local/include/gadgetd/ffs-daemon.h
 /usr/local/lib/libffs-daemon.so
+
+%files -n libffs-daemon-examples
+/usr/local/bin/ffs-host-example
+/usr/local/bin/ffs-service-example
