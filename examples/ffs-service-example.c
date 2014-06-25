@@ -46,93 +46,16 @@
 #define IOCB_FLAG_RESFD         (1 << 0)
 
 #include <linux/usb/functionfs.h>
+#include <gadgetd/ffs-daemon.h>
 
 #define BUF_LEN		8192
 
 /******************** Descriptors and Strings *******************************/
 
-static const struct {
-	struct usb_functionfs_descs_head_v2 header;
-	__le32 fs_count;
-	__le32 hs_count;
-	struct {
-		struct usb_interface_descriptor intf;
-		struct usb_endpoint_descriptor_no_audio bulk_sink;
-		struct usb_endpoint_descriptor_no_audio bulk_source;
-	} __attribute__ ((__packed__)) fs_descs, hs_descs;
-} __attribute__ ((__packed__)) descriptors = {
-	.header = {
-		.magic = htole32(FUNCTIONFS_DESCRIPTORS_MAGIC_V2),
-		.flags = htole32(FUNCTIONFS_HAS_FS_DESC |
-				     FUNCTIONFS_HAS_HS_DESC),
-		.length = htole32(sizeof(descriptors)),
-	},
-	.fs_count = htole32(3),
-	.fs_descs = {
-		.intf = {
-			.bLength = sizeof(descriptors.fs_descs.intf),
-			.bDescriptorType = USB_DT_INTERFACE,
-			.bNumEndpoints = 2,
-			.bInterfaceClass = USB_CLASS_VENDOR_SPEC,
-			.iInterface = 1,
-		},
-		.bulk_sink = {
-			.bLength = sizeof(descriptors.fs_descs.bulk_sink),
-			.bDescriptorType = USB_DT_ENDPOINT,
-			.bEndpointAddress = 1 | USB_DIR_IN,
-			.bmAttributes = USB_ENDPOINT_XFER_BULK,
-		},
-		.bulk_source = {
-			.bLength = sizeof(descriptors.fs_descs.bulk_source),
-			.bDescriptorType = USB_DT_ENDPOINT,
-			.bEndpointAddress = 2 | USB_DIR_OUT,
-			.bmAttributes = USB_ENDPOINT_XFER_BULK,
-		},
-	},
-	.hs_count = htole32(3),
-	.hs_descs = {
-		.intf = {
-			.bLength = sizeof(descriptors.hs_descs.intf),
-			.bDescriptorType = USB_DT_INTERFACE,
-			.bNumEndpoints = 2,
-			.bInterfaceClass = USB_CLASS_VENDOR_SPEC,
-			.iInterface = 1,
-		},
-		.bulk_sink = {
-			.bLength = sizeof(descriptors.hs_descs.bulk_sink),
-			.bDescriptorType = USB_DT_ENDPOINT,
-			.bEndpointAddress = 1 | USB_DIR_IN,
-			.bmAttributes = USB_ENDPOINT_XFER_BULK,
-		},
-		.bulk_source = {
-			.bLength = sizeof(descriptors.hs_descs.bulk_source),
-			.bDescriptorType = USB_DT_ENDPOINT,
-			.bEndpointAddress = 2 | USB_DIR_OUT,
-			.bmAttributes = USB_ENDPOINT_XFER_BULK,
-		},
-	},
-};
-
-#define STR_INTERFACE "AIO Test"
-
-static const struct {
-	struct usb_functionfs_strings_head header;
-	struct {
-		__le16 code;
-		const char str1[sizeof(STR_INTERFACE)];
-	} __attribute__ ((__packed__)) lang0;
-} __attribute__ ((__packed__)) strings = {
-	.header = {
-		.magic = htole32(FUNCTIONFS_STRINGS_MAGIC),
-		.length = htole32(sizeof(strings)),
-		.str_count = htole32(1),
-		.lang_count = htole32(1),
-	},
-	.lang0 = {
-		htole16(0x0409), /* en-us */
-		STR_INTERFACE,
-	},
-};
+/*
+ * Descriptors and strings are taken by gadgetd from service file,
+ * so they are not necessary here.
+ */
 
 /******************** Endpoints handling *******************************/
 
@@ -208,47 +131,45 @@ int main(int argc, char *argv[])
 	fd_set rfds;
 	char buf_in[BUF_LEN], buf_out[BUF_LEN];
 	struct iocb iocb_in, iocb_out;
-	char *ep_path;
 	int req_in = 0, req_out = 0;
 	bool ready;
+	enum usb_functionfs_event_type e;
 
-	if (argc != 2) {
-		printf("ffs directory not specified!\n");
+	/*
+	 * We don't need to open any file descriptors because they are
+	 * prepared for us, just take them using gadgetd library.
+	 */
+
+	/* This is simple example so we assume that
+	 * 3 descriptors should be passed */
+	ret = gd_nmb_of_ep(0);
+	if (ret != 3) {
+		perror("Incompatible number of ep received");
 		return 1;
 	}
 
-	ep_path = malloc(strlen(argv[1]) + 4 /* "/ep#" */ + 1 /* '\0' */);
-	if (!ep_path) {
-		perror("malloc");
-		return 1;
-	}
-
-	/* open endpoint files */
-	sprintf(ep_path, "%s/ep0", argv[1]);
-	ep[0] = open(ep_path, O_RDWR);
-	if (ep[0] < 0) {
-		perror("unable to open ep0");
-		return 1;
-	}
-	if (write(ep[0], &descriptors, sizeof(descriptors)) < 0) {
-		perror("unable do write descriptors");
-		return 1;
-	}
-	if (write(ep[0], &strings, sizeof(strings)) < 0) {
-		perror("unable to write strings");
-		return 1;
-	}
-	for (i = 1; i < 3; ++i) {
-		sprintf(ep_path, "%s/ep%d", argv[1], i);
-		ep[i] = open(ep_path, O_RDWR);
+	for (i = 0; i < 3; ++i) {
+		ep[i] = gd_get_ep_by_nmb(i);
 		if (ep[i] < 0) {
-			printf("unable to open ep%d: %s\n", i,
-			       strerror(errno));
+			perror("Unable to get descriptors");
 			return 1;
 		}
 	}
 
-	free(ep_path);
+	/* Check what was our activation event */
+	e = gd_get_activation_event(0);
+	switch (e) {
+	case FUNCTIONFS_BIND:
+		ready = false;
+		break;
+	case FUNCTIONFS_ENABLE:
+	case FUNCTIONFS_SETUP:
+		ready = true;
+		break;
+	default:
+		perror("Error or unsupported activation event");
+		return 1;
+	}
 
 	memset(&io_ctx, 0, sizeof(io_ctx));
 	/* setup aio context to handle up to 2 requests */
@@ -263,6 +184,9 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	/* If we are ready we skip initial select */
+	if (ready)
+		goto queue_requests;
 
 	while (1) {
 		FD_ZERO(&rfds);
@@ -310,6 +234,7 @@ int main(int argc, char *argv[])
 			}
 		}
 
+queue_requests:
 		if (!req_in) { /* if IN transfer not requested*/
 			struct iocb *iocb = &iocb_in;
 			/* prepare request */

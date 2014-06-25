@@ -34,6 +34,7 @@ License:        Apache-2.0
 Summary:        Sample applications using libffs-daemon
 BuildRequires:  pkgconfig(libusb-1.0)
 BuildRequires:  libaio-devel
+BuildRequires:  libffs-daemon-devel
 
 %description -n libffs-daemon-examples
 Sample applications which demonstrates how to use libffs-daemon to write

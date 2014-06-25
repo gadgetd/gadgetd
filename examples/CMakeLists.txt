@@ -20,7 +20,7 @@ ENDFOREACH(flag)
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${EXTRA_CFLAGS}")
 
 ADD_EXECUTABLE(ffs-service-example ${FFS_SERVICE_EXAMPLE_SRC})
-TARGET_LINK_LIBRARIES(ffs-service-example "-laio")
+TARGET_LINK_LIBRARIES(ffs-service-example "-laio" ffs-daemon)
 
 ADD_EXECUTABLE(ffs-host-example ${FFS_HOST_EXAMPLE_SRC})
 TARGET_LINK_LIBRARIES(ffs-host-example ${LIBUSB_LDFLAGS})
