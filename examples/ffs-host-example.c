@@ -159,6 +159,7 @@ void test_exit(struct test_state *state)
 int main(void)
 {
 	struct test_state state;
+	int ret;
 
 	if (test_init(&state))
 		return 1;
@@ -166,10 +167,24 @@ int main(void)
 	while (1) {
 		static unsigned char buffer[BUF_LEN];
 		int bytes;
-		libusb_bulk_transfer(state.handle, EP_BULK_IN, buffer, BUF_LEN,
-				     &bytes, 500);
-		libusb_bulk_transfer(state.handle, EP_BULK_OUT, buffer, BUF_LEN,
-				     &bytes, 500);
+		ret = libusb_bulk_transfer(state.handle, EP_BULK_IN, buffer,
+					   BUF_LEN, &bytes, 500);
+		if (ret) {
+			fprintf(stderr, "BULK_IN transfer error: %s\n",
+				libusb_error_name(ret));
+			break;
+		}
+		ret = libusb_bulk_transfer(state.handle, EP_BULK_OUT, buffer,
+					   BUF_LEN, &bytes, 500);
+		if (ret) {
+			fprintf(stderr, "BULK_OUT transfer error: %s\n",
+				libusb_error_name(ret));
+			break;
+		}
+
+		fprintf(stdout, "Transfer part completed\n");
 	}
 	test_exit(&state);
+
+	return 0;
 }
