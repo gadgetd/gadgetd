@@ -202,18 +202,13 @@ static void handle_ep0(int ep0, bool *ready)
 int main(int argc, char *argv[])
 {
 	int i, ret;
-	char *ep_path;
-
-	int ep0;
-	int ep[2];
-
-	io_context_t ctx;
-
+	int ep[3];
+	io_context_t io_ctx;
 	int evfd;
 	fd_set rfds;
-
-	char *buf_in, *buf_out;
-	struct iocb *iocb_in, *iocb_out;
+	char buf_in[BUF_LEN], buf_out[BUF_LEN];
+	struct iocb iocb_in, iocb_out;
+	char *ep_path;
 	int req_in = 0, req_out = 0;
 	bool ready;
 
@@ -230,24 +225,24 @@ int main(int argc, char *argv[])
 
 	/* open endpoint files */
 	sprintf(ep_path, "%s/ep0", argv[1]);
-	ep0 = open(ep_path, O_RDWR);
-	if (ep0 < 0) {
+	ep[0] = open(ep_path, O_RDWR);
+	if (ep[0] < 0) {
 		perror("unable to open ep0");
 		return 1;
 	}
-	if (write(ep0, &descriptors, sizeof(descriptors)) < 0) {
+	if (write(ep[0], &descriptors, sizeof(descriptors)) < 0) {
 		perror("unable do write descriptors");
 		return 1;
 	}
-	if (write(ep0, &strings, sizeof(strings)) < 0) {
+	if (write(ep[0], &strings, sizeof(strings)) < 0) {
 		perror("unable to write strings");
 		return 1;
 	}
-	for (i = 0; i < 2; ++i) {
-		sprintf(ep_path, "%s/ep%d", argv[1], i+1);
+	for (i = 1; i < 3; ++i) {
+		sprintf(ep_path, "%s/ep%d", argv[1], i);
 		ep[i] = open(ep_path, O_RDWR);
 		if (ep[i] < 0) {
-			printf("unable to open ep%d: %s\n", i+1,
+			printf("unable to open ep%d: %s\n", i,
 			       strerror(errno));
 			return 1;
 		}
@@ -255,9 +250,9 @@ int main(int argc, char *argv[])
 
 	free(ep_path);
 
-	memset(&ctx, 0, sizeof(ctx));
+	memset(&io_ctx, 0, sizeof(io_ctx));
 	/* setup aio context to handle up to 2 requests */
-	if (io_setup(2, &ctx) < 0) {
+	if (io_setup(2, &io_ctx) < 0) {
 		perror("unable to setup aio");
 		return 1;
 	}
@@ -268,19 +263,15 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	/* alloc buffers and requests */
-	buf_in = malloc(BUF_LEN);
-	buf_out = malloc(BUF_LEN);
-	iocb_in = malloc(sizeof(*iocb_in));
-	iocb_out = malloc(sizeof(*iocb_out));
 
 	while (1) {
 		FD_ZERO(&rfds);
-		FD_SET(ep0, &rfds);
+		FD_SET(ep[0], &rfds);
 		FD_SET(evfd, &rfds);
 
-		ret = select(((ep0 > evfd) ? ep0 : evfd)+1,
+		ret = select(((ep[0] > evfd) ? ep[0] : evfd)+1,
 			     &rfds, NULL, NULL, NULL);
+
 		if (ret < 0) {
 			if (errno == EINTR)
 				continue;
@@ -288,8 +279,8 @@ int main(int argc, char *argv[])
 			break;
 		}
 
-		if (FD_ISSET(ep0, &rfds))
-			handle_ep0(ep0, &ready);
+		if (FD_ISSET(ep[0], &rfds))
+			handle_ep0(ep[0], &ready);
 
 		/* we are waiting for function ENABLE */
 		if (!ready)
@@ -306,13 +297,13 @@ int main(int argc, char *argv[])
 
 			struct io_event e[2];
 			/* we wait for one event */
-			ret = io_getevents(ctx, 1, 2, e, NULL);
+			ret = io_getevents(io_ctx, 1, 2, e, NULL);
 			/* if we got event */
 			for (i = 0; i < ret; ++i) {
-				if (e[i].obj->aio_fildes == ep[0]) {
+				if (e[i].obj->aio_fildes == ep[1]) {
 					printf("ev=in; ret=%lu\n", e[i].res);
 					req_in = 0;
-				} else if (e[i].obj->aio_fildes == ep[1]) {
+				} else if (e[i].obj->aio_fildes == ep[2]) {
 					printf("ev=out; ret=%lu\n", e[i].res);
 					req_out = 0;
 				}
@@ -320,27 +311,30 @@ int main(int argc, char *argv[])
 		}
 
 		if (!req_in) { /* if IN transfer not requested*/
-			/* prepare write request */
-			io_prep_pwrite(iocb_in, ep[0], buf_in, BUF_LEN, 0);
-			/* enable eventfd notification */
-			iocb_in->u.c.flags |= IOCB_FLAG_RESFD;
-			iocb_in->u.c.resfd = evfd;
+			struct iocb *iocb = &iocb_in;
+			/* prepare request */
+			io_prep_pwrite(iocb, ep[1], buf_in, BUF_LEN, 0);
+			/* enable eventfs notification */
+			iocb->u.c.flags |= IOCB_FLAG_RESFD;
+			iocb->u.c.resfd = evfd;
 			/* submit table of requests */
-			ret = io_submit(ctx, 1, &iocb_in);
+			ret = io_submit(io_ctx, 1, &iocb);
 			if (ret >= 0) { /* if ret > 0 request is queued */
 				req_in = 1;
 				printf("submit: in\n");
 			} else
 				perror("unable to submit request");
 		}
+
 		if (!req_out) { /* if OUT transfer not requested */
-			/* prepare read request */
-			io_prep_pread(iocb_out, ep[1], buf_out, BUF_LEN, 0);
+			struct iocb *iocb = &iocb_out;
+			/* prepare request */
+			io_prep_pread(iocb, ep[2], buf_out, BUF_LEN, 0);
 			/* enable eventfs notification */
-			iocb_out->u.c.flags |= IOCB_FLAG_RESFD;
-			iocb_out->u.c.resfd = evfd;
+			iocb->u.c.flags |= IOCB_FLAG_RESFD;
+			iocb->u.c.resfd = evfd;
 			/* submit table of requests */
-			ret = io_submit(ctx, 1, &iocb_out);
+			ret = io_submit(io_ctx, 1, &iocb);
 			if (ret >= 0) { /* if ret > 0 request is queued */
 				req_out = 1;
 				printf("submit: out\n");
@@ -350,17 +344,10 @@ int main(int argc, char *argv[])
 	}
 
 	/* free resources */
+	io_destroy(io_ctx);
 
-	io_destroy(ctx);
-
-	free(buf_in);
-	free(buf_out);
-	free(iocb_in);
-	free(iocb_out);
-
-	for (i = 0; i < 2; ++i)
+	for (i = 0; i < 3; ++i)
 		close(ep[i]);
-	close(ep0);
 
 	return 0;
 }
