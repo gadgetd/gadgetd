@@ -1,0 +1,53 @@
+<node>
+  <interface name="org.usb.device.GadgetManager">
+   <method name="CreateGadget">
+       <arg type="s" name="gadget_name" direction="in"/>
+       <arg type="a{sv}" name="descriptors" direction="in"/>
+       <arg type="a{sv}" name="strings" direction="in"/>
+       <arg type="o" name="gadget_path" direction="out"/>
+   </method>
+    <method name="RemoveGadget">
+       <arg type="o" name="gadget_path" direction="in"/>
+       <arg type="b" name="gadget_removed" direction="out"/>
+   </method>
+    <method name="FindGadgetByName">
+       <arg type="s" name="gadget_name" direction="in"/>
+       <arg type="o" name="gadget_path" direction="out"/>
+   </method>
+   <method name="ListAvaliableFunctions">
+       <arg type="as" name="function_list" direction="out"/>
+   </method>
+  </interface>
+  <interface name="org.usb.device.Gadget.Descriptors">
+       <property type="q" name="bcdUSB" access="read"/>
+       <property type="y" name="bDeviceClass" access="read"/>
+       <property type="y" name="bDeviceSubClass" access="read"/>
+       <property type="y" name="bDeviceProtocol" access="read"/>
+       <property type="y" name="bMaxPacketSize0" access="read"/>
+       <property type="q" name="idVendor" access="read"/>
+       <property type="q" name="idProduct" access="read"/>
+       <property type="q" name="bcdDevice" access="read"/>
+  </interface>
+  <interface name="org.usb.device.Gadget.Strings">
+       <property type="s" name="serialnumber" access="read"/>
+       <property type="s" name="manufacturer" access="read"/>
+       <property type="s" name="product" access="read"/>
+  </interface>
+  <interface name="org.usb.device.Gadget.FunctionManager">
+   <method name="CreateFunction">
+       <arg type="s" name="instance" direction="in"/>
+       <arg type="s" name="type" direction="in"/>
+       <arg type="o" name="function_path" direction="out"/>
+   </method>
+    <method name="RemoveFunction">
+       <arg type="o" name="function_path" direction="in"/>
+       <arg type="b" name="function_removed" direction="out"/>
+   </method>
+    <method name="FindFunctionByName">
+       <arg type="s" name="function_name" direction="in"/>
+       <arg type="o" name="function_path" direction="out"/>
+   </method>
+  </interface>
+</node>
+
+
