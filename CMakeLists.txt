@@ -49,6 +49,7 @@ IF(BUILD_EXECUTABLE)
 	SET(PKG_MODULES
 		libusbg
 		glib-2.0
+		gio-unix-2.0
 	)
 
 	INCLUDE(FindPkgConfig)
@@ -69,7 +70,35 @@ IF(BUILD_EXECUTABLE)
 	        ADD_DEFINITIONS("-D__FFS_LEGACY_API_SUPPORT")
 	ENDIF(SUPPORT_FFS_LEGACY_API)
 
+	# DBUS code generation using gdbus-codegen
+	SET(CODEGEN_PREFIX
+                gadgetd-gdbus-codegen
+	)
+
+        SET(CODEGEN_COMMAND
+                gdbus-codegen
+		--interface-prefix org.usb.device.
+		--generate-c-code ${CODEGEN_PREFIX}
+		--c-generate-object-manager
+		--c-namespace Gadgetd
+		${CMAKE_CURRENT_SOURCE_DIR}/xml/gadgetd.xml
+	)
+
+	ADD_CUSTOM_COMMAND(
+	        OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/src/${CODEGEN_PREFIX}.c
+	        OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/include/${CODEGEN_PREFIX}.h
+		COMMAND ${CODEGEN_COMMAND}
+		COMMAND mv ${CODEGEN_PREFIX}.c ${CMAKE_CURRENT_SOURCE_DIR}/src/
+		COMMAND mv ${CODEGEN_PREFIX}.h ${CMAKE_CURRENT_SOURCE_DIR}/include/
+	)
+
+        SET(GADGETD_SRCS
+                ${GADGETD_SRCS}
+                ${CMAKE_CURRENT_SOURCE_DIR}/src/${CODEGEN_PREFIX}.c
+	)
+
 	ADD_EXECUTABLE(${PROJECT_NAME} ${GADGETD_SRCS})
+
 	TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${pkgs_LDFLAGS} "-lusbg -ldl -lgio-2.0 -lgobject-2.0 -lglib-2.0")
 
 	ADD_DEFINITIONS("-DGD_EXPORT_SYMBOLS")
