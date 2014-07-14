@@ -24,7 +24,8 @@
 #include <linux/usb/functionfs.h>
 
 enum ffs_service_options {
-	FFS_SERVICE_ALLOW_MULTIPLE = 1
+	FFS_SERVICE_ALLOW_MULTIPLE = 1,
+	FFS_SERVICE_ALLOW_CONCURENT = 2
 };
 
 
