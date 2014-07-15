@@ -31,6 +31,8 @@ typedef enum  {
 	GD_ERROR_BAD_VALUE = -5,
 	GD_ERROR_NO_MEM = -6,
 	GD_ERROR_LINE_TOO_LONG = -7,
+	GD_ERROR_INVALID_PARAM = -8,
+	GD_ERROR_PATH_TOO_LONG = -9,
 	GD_ERROR_OTHER_ERROR = -99
 } gd_error;
 
@@ -52,3 +54,8 @@ typedef enum  {
                                 __func__, ##__VA_ARGS__);\
                         fflush(stderr);\
                     } while (0)
+
+/**
+ * @brief Translate errno into gadgetd error code
+ **/
+int gd_translate_error(int error);
