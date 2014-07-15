@@ -29,6 +29,7 @@ IF(BUILD_EXECUTABLE)
 		src/gadgetd-remove.c
 		src/gadgetd-config.c
 		src/gadgetd-common.c
+		src/gadgetd-introspection.c
 		src/strdelim.c
 		src/ffs-service.c
 	)
