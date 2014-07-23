@@ -96,6 +96,16 @@ gd_str_list_append(gchar ***list, gchar *str, int cap, int count)
 	return cap;
 }
 
+static int
+gd_str_cmp(const void *a, const void *b)
+{
+	if (*(gchar **)a == NULL)
+		return 1;
+	if (*(gchar **)b == NULL)
+		return -1;
+	return strcmp(*(gchar **)a, *(gchar **)b);
+}
+
 static void
 gd_free_2d(gchar **src, int len)
 {
@@ -176,38 +186,34 @@ gd_alloc_get_next_str(FILE *fp, gchar **str)
 	return count;
 }
 
-int
-gd_list_usbfunc_modules(char *path, gchar ***aliases)
+static int
+gd_append_usbfunc_modules(char *path, gchar ***funclist,
+	int *cap, int *count)
 {
 	gchar pattern[] = "usbfunc:";
 	gchar alias[] = "alias";
 	gchar buff[MAX(sizeof(pattern), sizeof(alias))];
 	gchar *tmpstr;
 	int tmp;
-	int count = 0;
 	int ret = GD_ERROR_OTHER_ERROR;
-	/* default size of buffer is number of usb functions in kernel config */
-	int cap = KERNEL_USB_FUNCTIONS_COUNT;
 	FILE *fp;
+	int newcnt;
+	int newcap;
+	int i;
 	gchar **res;
+	gchar **ptr;
 
-	if (aliases == NULL || path == NULL)
-		return GD_ERROR_INVALID_PARAM;
+	newcnt = *count;
+	newcap = *cap;
 
-	res = *aliases;
+	res = *funclist;
 	fp = fopen(path, "r");
 	if (fp == NULL) {
 		ret = gd_translate_error(errno);
-		ERROR("Error opening file: %s", path);
 		return ret;
 	}
 
-	res = malloc(cap * sizeof(gchar *));
-	if (res == NULL) {
-		ERROR("Error allocating memory");
-		ret = GD_ERROR_NO_MEM;
-		goto error;
-	}
+	qsort(res, *count, sizeof(*res), gd_str_cmp);
 
 	while (1) {
 		tmp = gd_get_next_str(fp, buff, sizeof(alias));
@@ -246,10 +252,16 @@ gd_list_usbfunc_modules(char *path, gchar ***aliases)
 				ret = tmp;
 				goto error;
 			}
-			cap = gd_str_list_append(&res, tmpstr, cap, count++);
-			if (cap < 0) {
-				ret = cap;
-				goto error;
+			ptr = (gchar **)bsearch(&tmpstr, res, *count,
+				sizeof(*res), gd_str_cmp);
+			if (ptr == NULL) {
+				tmp = gd_str_list_append(&res, tmpstr,
+					newcap, newcnt++);
+				if (tmp < 0) {
+					ret = tmp;
+					goto error;
+				}
+				newcap = tmp;
 			}
 		}
 
@@ -258,14 +270,149 @@ gd_list_usbfunc_modules(char *path, gchar ***aliases)
 			break;
 	}
 
-	gd_str_list_append(&res, NULL, cap, count);
-	*aliases = res;
+	tmp = gd_str_list_append(&res, NULL, newcap, newcnt);
+	if (tmp < 0) {
+		ret = tmp;
+		goto error;
+	}
+	*cap = tmp;
+	*count = newcnt;
+	*funclist = res;
 	fclose(fp);
-	return cap;
+	return GD_SUCCESS;
 
 error:
-	gd_free_2d(res, count);
 	if (fp != NULL)
 		fclose(fp);
+	*cap = newcap;
+	for (i = *count; i < newcnt; i++)
+		free(res[i]);
+	res[*count] = NULL;
+	*funclist = res;
+
 	return ret;
+}
+
+static int
+gd_append_func_list(char *path, gchar ***funclist, int *cap, int *count)
+{
+	FILE *fp;
+	gchar *tmpstr;
+	gchar **ptr;
+	gchar **res;
+	int tmp;
+	int err_code = GD_ERROR_OTHER_ERROR;
+	int newcnt = *count;
+	int newcap = *cap;
+	int i;
+
+	fp = fopen(path, "r");
+	if (fp == NULL) {
+		err_code = gd_translate_error(errno);
+		return err_code;
+	}
+
+	res = *funclist;
+	qsort(res, *count, sizeof(*res), gd_str_cmp);
+	while (1) {
+		tmp = gd_alloc_get_next_str(fp, &tmpstr);
+		if (tmp == 0)
+			break;
+		if (tmp < 0) {
+			err_code = tmp;
+			goto error;
+		}
+		ptr = (gchar **)bsearch(&tmpstr, res, newcnt,
+				sizeof(*res), gd_str_cmp);
+
+		if (ptr == NULL) {
+			tmp = gd_str_list_append(&res, tmpstr,
+				newcap, newcnt++);
+			if (tmp < 0) {
+				err_code = tmp;
+				goto error;
+			}
+			newcap = tmp;
+		}
+	}
+	tmp = gd_str_list_append(&res, NULL, newcap, newcnt);
+	if (tmp < 0) {
+		err_code = tmp;
+		goto error;
+	}
+	*cap = tmp;
+	*count = newcnt;
+	*funclist = res;
+	fclose(fp);
+	return GD_SUCCESS;
+
+error:
+	fclose(fp);
+	*cap = newcap;
+	for (i = *count; i < newcnt; i++)
+		free(res[i]);
+	res[*count] = NULL;
+	*funclist = res;
+	return err_code;
+}
+
+int
+gd_list_functions(gchar ***dest)
+{
+	char path[PATH_MAX];
+	struct utsname name;
+	/* default size of list is number of usb functions in kernel config */
+	int cap = KERNEL_USB_FUNCTIONS_COUNT + 1;
+	int count = 0;
+	gchar **list;
+	int tmp;
+
+	if (dest == NULL)
+		return GD_ERROR_INVALID_PARAM;
+
+	if (uname(&name) != 0)
+		return gd_translate_error(errno);
+
+	tmp = snprintf(path, PATH_MAX,
+		"/lib/modules/%s/modules.alias", name.release);
+	if (tmp >= PATH_MAX) {
+		*dest = NULL;
+		ERROR("Path too long");
+		return GD_ERROR_PATH_TOO_LONG;
+	}
+
+	list = malloc(cap * sizeof(gchar *));
+	if (list == NULL) {
+		tmp = GD_ERROR_NO_MEM;
+		goto error;
+	}
+	list[0] = NULL;
+
+	tmp = gd_append_usbfunc_modules(path, &list, &cap, &count);
+	if (tmp < 0 && tmp != GD_ERROR_FILE_OPEN_FAILED)
+		goto error;
+	else if (tmp == GD_ERROR_FILE_OPEN_FAILED)
+		INFO("modules.alias file not found");
+
+	tmp = gd_append_func_list("/sys/class/usb_gadget/func_list",
+		&list, &cap, &count);
+	if (tmp < 0 && tmp != GD_ERROR_FILE_OPEN_FAILED)
+		goto error;
+	else if (tmp == GD_ERROR_FILE_OPEN_FAILED)
+		INFO("func_list file not found");
+
+	cap = count + 1;
+	*dest = realloc(list, cap * sizeof(*list));
+	if (*dest == NULL) {
+		tmp = GD_ERROR_NO_MEM;
+		goto error;
+	}
+
+	return GD_SUCCESS;
+
+error:
+	gd_free_2d(list, count);
+	*dest = NULL;
+
+	return tmp;
 }

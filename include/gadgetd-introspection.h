@@ -18,10 +18,9 @@
 #include <glib.h>
 
 /**
- * @brief Parses modules alias file from given path, search for usbfunc modules
- * @details Finds module aliases in format "usbfunc:<str>" and puts <str> into list.
- * @param [in] path Path to modules.alias file
- * @param [out] aliases Pointer to array containting result (allocated in function)
- * @return Error code if failed or GD_SUCCESS if succeed.
+ * @param[out] dest Pointer to null terminated array containg names
+ * of found functions. May be empty if nothing was found or NULL if
+ * error occurred. Must be freed by caller
+ * @return Error code if failed or GD_SUCCESS if succeed
  **/
-int gd_list_usbfunc_modules(char *path, gchar ***aliases);
+int gd_list_functions(gchar ***dest);
