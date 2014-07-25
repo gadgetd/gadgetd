@@ -58,6 +58,7 @@ IF(BUILD_EXECUTABLE)
 	SET(PKG_MODULES
 		libusbg
 		glib-2.0
+		libconfig
 		gio-unix-2.0
 	)
 
@@ -107,8 +108,7 @@ IF(BUILD_EXECUTABLE)
 	)
 
 	ADD_EXECUTABLE(${PROJECT_NAME} ${GADGETD_SRCS})
-
-	TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${pkgs_LDFLAGS} "-lusbg -ldl -lgio-2.0 -lgobject-2.0 -lglib-2.0")
+	TARGET_LINK_LIBRARIES(${PROJECT_NAME} ${pkgs_LDFLAGS} "-lusbg -ldl -lgio-2.0 -lgobject-2.0 -lglib-2.0 -lconfig")
 
 	ADD_DEFINITIONS("-DGD_EXPORT_SYMBOLS")
 

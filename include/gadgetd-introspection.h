@@ -18,13 +18,25 @@
 #define GADGETD_INTROSPECTION_H
 
 #include <glib.h>
+#include <ffs-service.h>
 
 /**
  * @param[out] dest Pointer to null terminated array containg names
  * of found functions. May be empty if nothing was found or NULL if
- * error occurred. Must be freed by caller
+ * error occurred. Must be freed by caller.
  * @return Error code if failed or GD_SUCCESS if succeed
  **/
 int gd_list_functions(gchar ***dest);
+
+/**
+ * @brief Parse given config file into ffs_service structure
+ * @param[in] path Path to configuration file
+ * @param[out] service Pointer to destination service
+ * @param[in] destroy_at_cleanup if zero, service will not be freed by its
+ * cleanup function
+ * @return Error code if failed or GD_SUCCESS if succeed
+ **/
+int gd_read_ffs_service(const char *path, struct ffs_service *service,
+		int destroy_at_cleanup);
 
 #endif /* GADGETD_INTROSPECTION_H */
