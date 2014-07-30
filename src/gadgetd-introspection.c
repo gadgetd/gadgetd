@@ -41,7 +41,7 @@ gd_skip_till_eol(FILE *fp)
 
 	do
 		c = getc(fp);
-	while (c != EOF && c != '\n');
+	while (!feof(fp) && c != '\n');
 	return c;
 }
 
@@ -52,7 +52,7 @@ gd_skip_spaces(FILE *fp)
 
 	do
 		c = getc(fp);
-	while (isspace(c) && c != EOF);
+	while (isspace(c) && !feof(fp));
 	return c;
 }
 
@@ -115,13 +115,13 @@ gd_get_next_str(FILE *fp, gchar *dest, int len)
 	int count = 0;
 
 	c = gd_skip_spaces(fp);
-	if (c == EOF)
+	if (feof(fp))
 		return 0;
 	dest[count++] = c;
 
 	while (count < len - 1) {
 		c = getc(fp);
-		if (c == EOF) {
+		if (feof(fp)) {
 			ERROR("Error: wrong file format");
 			break;
 		}
@@ -144,7 +144,7 @@ gd_alloc_get_next_str(FILE *fp, gchar **str)
 	int buffcap = sizeof(sbuff);
 
 	c = gd_skip_spaces(fp);
-	if (c == EOF)
+	if (feof(fp))
 		return 0;
 
 	do {
@@ -157,7 +157,7 @@ gd_alloc_get_next_str(FILE *fp, gchar **str)
 				return tmp;
 		}
 		c = getc(fp);
-	} while (!isspace(c) && c != EOF);
+	} while (!isspace(c) && !feof(fp));
 
 	buff[count++] = '\0';
 	if (buff == sbuff) {
@@ -217,7 +217,8 @@ gd_list_usbfunc_modules(char *path, gchar ***aliases)
 			goto error;
 
 		if (buff[0] == '#') {
-			if (gd_skip_till_eol(fp) == EOF)
+			gd_skip_till_eol(fp);
+			if (feof(fp))
 				break;
 			continue;
 		}
@@ -252,7 +253,8 @@ gd_list_usbfunc_modules(char *path, gchar ***aliases)
 			}
 		}
 
-		if (gd_skip_till_eol(fp) == EOF)
+		gd_skip_till_eol(fp);
+		if (feof(fp))
 			break;
 	}
 
