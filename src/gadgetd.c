@@ -29,6 +29,7 @@
 #include <gadgetd-config.h>
 #include <gadgetd-create.h>
 #include <gadgetd-common.h>
+#include <gadget-daemon.h>
 
 #include <gio/gio.h>
 #include <glib/gprintf.h>
@@ -155,6 +156,11 @@ main(int argc, char **argv)
 	if (g_ret != GD_SUCCESS) {
                 ERROR("Error reading default config\n");
         }
+
+	g_ret = gadget_daemon_run();
+	if (g_ret != GD_SUCCESS) {
+		ERROR("Error : Cannot run dbus service\n");
+	}
 
 	gd_free_config(&config);
 	return g_ret;

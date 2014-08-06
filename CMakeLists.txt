@@ -32,6 +32,7 @@ IF(BUILD_EXECUTABLE)
 		src/gadgetd-introspection.c
 		src/strdelim.c
 		src/ffs-service.c
+		src/gadget-daemon.c
 	)
 
 	SET(FFS-DAEMON-SRC
@@ -117,6 +118,7 @@ IF(BUILD_EXECUTABLE)
 	        LIBRARY DESTINATION ${LIBDIR}
 	        COMPONENT library)
 	INSTALL(FILES include/ffs-daemon.h DESTINATION ${INCLUDEDIR}/gadgetd)
+	INSTALL(FILES xml/org.usb.gadgetd.conf DESTINATION /etc/dbus-1/system.d)
 
 	# uninstall target
 	configure_file(
