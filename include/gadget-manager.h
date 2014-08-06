@@ -19,6 +19,7 @@
 #define GADGET_MANAGER_H
 
 #include <glib-object.h>
+#include "gadgetd-gdbus-codegen.h"
 
 G_BEGIN_DECLS
 
@@ -29,9 +30,9 @@ typedef struct _GadgetManager GadgetManager;
 #define GADGET_MANAGER(o)	(G_TYPE_CHECK_INSTANCE_CAST((o), GADGET_TYPE_MANAGER, GadgetManager))
 #define GADGET_IS_MANAGER(o)	(G_TYPE_CHECK_INSTANCE_TYPE((o), GADGET_TYPE_MANAGER))
 
-GType                  gadget_manager_get_type      (void) G_GNUC_CONST;
-GadgetdGadgetManager  *gadget_manager_new           (GadgetDaemon *daemon);
-GadgetDaemon          *gadget_manager_get_daemon    (GadgetManager *manager);
+GType                  gadget_manager_get_type       (void) G_GNUC_CONST;
+GadgetdGadgetManager  *gadget_manager_new            (GadgetDaemon *daemon);
+GadgetDaemon          *gadget_manager_get_daemon     (GadgetManager *manager);
 
 G_END_DECLS
 

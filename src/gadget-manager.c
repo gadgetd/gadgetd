@@ -28,6 +28,7 @@
 #include <gadgetd-config.h>
 #include <usbg/usbg.h>
 #include <gadgetd-common.h>
+#include <gadgetd-gadget-object.h>
 
 
 typedef struct _GadgetManagerClass   GadgetManagerClass;
@@ -360,6 +361,10 @@ handle_create_gadget(GadgetdGadgetManager	*object,
 	usbg_gadget *g;
 	const char *msg = "Unknown error";
 	gchar *path;
+	GadgetdGadgetObject *gadget_object;
+	GadgetDaemon *daemon;
+
+	daemon = gadget_manager_get_daemon(GADGET_MANAGER(object));
 
 	INFO("handled create gadget \n");
 
@@ -393,6 +398,11 @@ handle_create_gadget(GadgetdGadgetManager	*object,
 		msg = "Invalid strings or descriptors argument";
 		goto out;
 	}
+
+	/* create dbus gadget object */
+	gadget_object = gadgetd_gadget_object_new(daemon, gadget_name);
+	g_dbus_object_manager_server_export(gadget_daemon_get_object_manager(daemon),
+					    G_DBUS_OBJECT_SKELETON(gadget_object));
 
 	/* send gadget path*/
 	g_dbus_method_invocation_return_value(invocation,

@@ -34,6 +34,7 @@ IF(BUILD_EXECUTABLE)
 		src/ffs-service.c
 		src/gadget-daemon.c
 		src/gadget-manager.c
+		src/gadgetd-gadget-object.c
 	)
 
 	SET(FFS-DAEMON-SRC
