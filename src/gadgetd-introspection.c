@@ -481,6 +481,139 @@ gd_setting_get_bool(config_setting_t *root, int *dst)
 	return GD_SUCCESS;
 }
 
+static const char *
+gd_string_skip_spaces(const char *ptr)
+{
+	while(isspace(*ptr) && *ptr != '\0')
+		ptr++;
+	return ptr;
+}
+
+static const char *
+gd_string_skip_const_name(const char *ptr)
+{
+	while(!isspace(*ptr) && *ptr != '|' && *ptr != '\0')
+		ptr++;
+	return ptr;
+}
+
+static int
+gd_parse_flags(const char *str, int *res, int (*translate)(const char *, int,
+			int *))
+{
+	int tmp;
+	int flag;
+	const char *start;
+	const char *pos;
+
+	*res = 0;
+	pos = str;
+	start = pos;
+	while (1) {
+		pos = gd_string_skip_spaces(pos);
+		if (*pos == '\0')
+			break;
+
+		start = pos;
+		pos = gd_string_skip_const_name(pos);
+		tmp = translate(start, pos - start, &flag);
+		if (tmp < 0)
+			return tmp;
+		*res |= flag;
+
+		pos = gd_string_skip_spaces(pos);
+		if (*pos == '\0')
+			break;
+
+		if (*pos != '|')
+			return GD_ERROR_BAD_VALUE;
+		pos++;
+	}
+
+	return GD_SUCCESS;
+}
+
+/**
+ * @brief structure storing name of variable and it's value
+ **/
+struct gd_named_const {
+	const char *name;
+	int len;
+	int value;
+};
+
+#define DECLARE_ELEMENT(name) {#name, sizeof(#name)-1, name}
+#define DECLARE_END() {NULL, 0, 0}
+
+static int
+gd_get_const_value(const char *name, int len, struct gd_named_const *keys, int *res)
+{
+	while (keys->name != NULL) {
+		if (keys->len == len
+		    && strncmp(name, keys->name, len) == 0) {
+			*res = keys->value;
+			return GD_SUCCESS;
+		}
+		keys++;
+	}
+	return GD_ERROR_NOT_FOUND;
+}
+
+static int
+gd_desc_translate_attribute(const char *name, int len, int *att)
+{
+	int res = -1;
+	int tmp;
+	static struct gd_named_const keys[] = {
+		DECLARE_ELEMENT(USB_CONFIG_ATT_ONE),
+		DECLARE_ELEMENT(USB_CONFIG_ATT_SELFPOWER),
+		DECLARE_ELEMENT(USB_CONFIG_ATT_WAKEUP),
+		DECLARE_ELEMENT(USB_CONFIG_ATT_BATTERY),
+		DECLARE_END()
+	};
+
+	if (name == NULL)
+		return GD_ERROR_INVALID_PARAM;
+
+	tmp = gd_get_const_value(name, len, keys, &res);
+	if (tmp < 0) {
+		ERROR("Unknown attribute flag: %.*s", len, name);
+		return GD_ERROR_BAD_VALUE;
+	}
+
+	*att = res;
+
+	return GD_SUCCESS;
+}
+
+static int
+gd_lookup_desc_attributes(config_setting_t *root, __u8 *att)
+{
+	config_setting_t *node;
+	int res;
+	const char *buff;
+	int tmp;
+
+	node = config_setting_get_member(root, "bmAttributes");
+	if (node == NULL) {
+		ERROR("bmAttributes not defined");
+		return GD_ERROR_NOT_FOUND;
+	}
+
+	if (config_setting_type(node) == CONFIG_TYPE_INT) {
+		res = config_setting_get_int(node);
+	} else if (config_setting_type(node) == CONFIG_TYPE_STRING) {
+		buff = config_setting_get_string(node);
+		tmp = gd_parse_flags(buff, &res, gd_desc_translate_attribute);
+		if (tmp < 0)
+			return tmp;
+	} else {
+		ERROR("bmAttributes must be string or number");
+	}
+
+	return GD_SUCCESS;
+}
+
 static int
 gd_ffs_lookup_activation_event(config_setting_t *root,
 	enum usb_functionfs_event_type *ev)
@@ -700,6 +833,315 @@ gd_ffs_lookup_options(config_setting_t *root, int *opt)
 	return GD_SUCCESS;
 }
 
+static int
+gd_lookup_desc_interface_class(config_setting_t *root, __u8 *cl)
+{
+	const char *buff;
+	int buflen;
+	config_setting_t *node;
+	int res;
+	int tmp;
+
+	node = config_setting_get_member(root, "bInterfaceClass");
+	if (node == NULL) {
+		ERROR("Interface class not defined");
+		return GD_ERROR_NOT_FOUND;
+	}
+	if (config_setting_type(node) == CONFIG_TYPE_INT) {
+		res = config_setting_get_int(node);
+	} else if (config_setting_type(node) == CONFIG_TYPE_STRING) {
+		buff = config_setting_get_string(node);
+		buflen = strlen(buff);
+		res = -1;
+		static struct gd_named_const keys[] = {
+			DECLARE_ELEMENT(USB_CLASS_PER_INTERFACE),
+			DECLARE_ELEMENT(USB_CLASS_AUDIO),
+			DECLARE_ELEMENT(USB_CLASS_COMM),
+			DECLARE_ELEMENT(USB_CLASS_HID),
+			DECLARE_ELEMENT(USB_CLASS_PHYSICAL),
+			DECLARE_ELEMENT(USB_CLASS_STILL_IMAGE),
+			DECLARE_ELEMENT(USB_CLASS_PRINTER),
+			DECLARE_ELEMENT(USB_CLASS_MASS_STORAGE),
+			DECLARE_ELEMENT(USB_CLASS_HUB),
+			DECLARE_ELEMENT(USB_CLASS_CDC_DATA),
+			DECLARE_ELEMENT(USB_CLASS_CSCID),
+			DECLARE_ELEMENT(USB_CLASS_CONTENT_SEC),
+			DECLARE_ELEMENT(USB_CLASS_VIDEO),
+			DECLARE_ELEMENT(USB_CLASS_WIRELESS_CONTROLLER),
+			DECLARE_ELEMENT(USB_CLASS_MISC),
+			DECLARE_ELEMENT(USB_CLASS_APP_SPEC),
+			DECLARE_ELEMENT(USB_CLASS_VENDOR_SPEC),
+			DECLARE_END()
+		};
+		tmp = gd_get_const_value(buff, buflen, keys, &res);
+		if (tmp < 0) {
+			ERROR("Unknown interface class %s", buff);
+			return GD_ERROR_BAD_VALUE;
+		}
+	} else {
+		ERROR("Interface class: expected string or number");
+		return GD_ERROR_BAD_VALUE;
+	}
+
+	if (res > UCHAR_MAX || res < 0) {
+		ERROR("bInterfaceClass out of range");
+		return GD_ERROR_BAD_VALUE;
+	}
+	*cl = res;
+
+	return GD_SUCCESS;
+}
+
+static int
+gd_lookup_desc_interface_subclass(config_setting_t *root, __u8 *cl)
+{
+	int res;
+	config_setting_t *node;
+
+	node = config_setting_get_member(root, "bInterfaceSubClass");
+	if (node == NULL) {
+		ERROR("No subclass was defined");
+		return GD_ERROR_NOT_FOUND;
+	}
+
+	if (config_setting_type(node) == CONFIG_TYPE_INT) {
+		res = config_setting_get_int(node);
+	} else if (config_setting_type(node) == CONFIG_TYPE_STRING) {
+		/* TODO string-defined subclasses */
+		return GD_ERROR_OTHER_ERROR;
+	} else {
+		ERROR("Interface subclass must be string or number");
+		return GD_ERROR_BAD_VALUE;
+	}
+
+	if (res > UCHAR_MAX || res < 0) {
+		ERROR("bInterfaceSubClass out of range");
+		return GD_ERROR_BAD_VALUE;
+	}
+	*cl = res;
+
+	return GD_SUCCESS;
+}
+
+static int
+gd_ffs_parse_interface_desc(config_setting_t *root,
+	struct usb_interface_descriptor *desc)
+{
+	int tmp;
+	int res;
+	config_setting_t *node;
+
+	desc->bLength = USB_DT_INTERFACE_SIZE;
+	tmp = gd_lookup_desc_interface_class(root, &desc->bInterfaceClass);
+	if (tmp < 0)
+		return tmp;
+	tmp = gd_lookup_desc_interface_subclass(root, &desc->bInterfaceSubClass);
+	if (tmp < 0)
+		return tmp;
+	node = config_setting_get_member(root, "iInterface");
+	if (node == NULL) {
+		ERROR("iInterface not defined");
+		return GD_ERROR_NOT_FOUND;
+	}
+	tmp = gd_setting_get_int(node, &res);
+	if (tmp < 0)
+		return tmp;
+	if (res > UCHAR_MAX || res < 0) {
+		ERROR("iInterface out of range");
+		return GD_ERROR_BAD_VALUE;
+	}
+	desc->iInterface = res;
+
+	return GD_SUCCESS;
+}
+
+static int
+gd_ffs_parse_ep_desc_no_audio(config_setting_t *root,
+	struct usb_endpoint_descriptor_no_audio *desc)
+{
+	int res;
+	int tmp;
+	const char *buff;
+	char dir_in[] = "in";
+	char dir_out[] = "out";
+	config_setting_t *node;
+
+	desc->bLength = sizeof(*desc);
+	node = config_setting_get_member(root, "address");
+	if (node == NULL) {
+		ERROR("address not defined");
+		return GD_ERROR_NOT_FOUND;
+	}
+
+	tmp = gd_setting_get_int(node, &res);
+	if (tmp < 0)
+		return tmp;
+
+	if (res > UCHAR_MAX || res < 0) {
+		ERROR("Adress out of range");
+		return GD_ERROR_BAD_VALUE;
+	}
+	/* only part of address, direction bit is set later */
+	desc->bEndpointAddress = res;
+	tmp = gd_lookup_desc_attributes(root, &desc->bmAttributes);
+	if (tmp < 0)
+		return tmp;
+
+	node = config_setting_get_member(root, "direction");
+	if (node == NULL) {
+		ERROR("direction not defined");
+		return GD_ERROR_NOT_FOUND;
+	}
+
+	tmp = gd_setting_get_string(node, &buff);
+	if (tmp < 0)
+		return tmp;
+
+	if (strcmp(buff, dir_in) == 0) {
+		desc->bEndpointAddress |= USB_DIR_IN;
+	} else if (strcmp(buff, dir_out) == 0) {
+		desc->bEndpointAddress |= USB_DIR_OUT;
+	} else {
+		ERROR("Invalid direction value");
+		return GD_ERROR_BAD_VALUE;
+	}
+
+	return GD_SUCCESS;
+}
+
+static int
+gd_ffs_fill_desc_list(config_setting_t *list, struct ffs_desc_per_seed *desc)
+{
+	int len;
+	char *pos;
+	int i;
+	int tmp;
+	const char *buff;
+	config_setting_t *group;
+	struct usb_interface_descriptor *inter;
+	struct usb_endpoint_descriptor_no_audio *ep;
+	int j = 0;
+
+	len = config_setting_length(list);
+
+	desc->desc_count = len;
+	desc->desc_size = 0;
+	for (i = 0; i < len; i++) {
+		group = config_setting_get_elem(list, i);
+		if (config_setting_is_group(group) == CONFIG_FALSE) {
+			ERROR("%s:%d Descriptor definition: expected group",
+				config_setting_source_file(group),
+				config_setting_source_line(group));
+			return GD_ERROR_BAD_VALUE;
+		}
+		tmp = config_setting_lookup_string(group, "type", &buff);
+		if (tmp == CONFIG_FALSE) {
+			ERROR("Descriptor type not defined");
+			return GD_ERROR_NOT_FOUND;
+		}
+		if (strcmp(buff, "INTERFACE_DESC") == 0)
+			desc->desc_size += USB_DT_INTERFACE_SIZE;
+		else if (strcmp(buff, "EP_NO_AUDIO_DESC") == 0)
+			desc->desc_size += USB_DT_ENDPOINT_SIZE;
+		else {
+			ERROR("%s descriptor type unsupported", buff);
+			return GD_ERROR_NOT_SUPPORTED;
+		}
+	}
+
+	desc->desc = malloc(desc->desc_size);
+	if (desc->desc == NULL) {
+		ERROR("Error allocating memory");
+		return GD_ERROR_NO_MEM;
+	}
+
+	pos = desc->desc;
+	for (i = 0; i < len; i++) {
+		group = config_setting_get_elem(list, i);
+		tmp = config_setting_lookup_string(group, "type", &buff);
+		if (strcmp(buff, "INTERFACE_DESC") == 0) {
+			inter = (struct usb_interface_descriptor *)pos;
+			tmp = gd_ffs_parse_interface_desc(group, inter);
+			if (tmp < 0)
+				goto out;
+			inter->bNumEndpoints = 0;
+			inter->bInterfaceNumber = j++;
+			pos += USB_DT_INTERFACE_SIZE;
+		} else if (strcmp(buff, "EP_NO_AUDIO_DESC") == 0) {
+			ep = (struct usb_endpoint_descriptor_no_audio *)pos;
+			tmp = gd_ffs_parse_ep_desc_no_audio(group, ep);
+			if (tmp < 0)
+				goto out;
+			inter->bNumEndpoints++;
+			pos += USB_DT_ENDPOINT_SIZE;
+		}
+	}
+
+	return GD_SUCCESS;
+out:
+	free(desc->desc);
+	return tmp;
+}
+
+static int
+gd_ffs_fill_desc_config(config_setting_t *root, struct ffs_service *srv)
+{
+	config_setting_t *fs_desc;
+	config_setting_t *hs_desc;
+	config_setting_t *group;
+	struct ffs_desc_per_seed desc[2];
+	int tmp;
+	int mask = 0;
+
+	group = config_setting_get_member(root, "descriptors");
+	if (group == NULL) {
+		ERROR("descriptors not defined");
+		return GD_ERROR_NOT_FOUND;
+	}
+
+	if (config_setting_is_group(group) == CONFIG_FALSE) {
+		ERROR("descriptors must be group");
+		return GD_ERROR_BAD_VALUE;
+	}
+
+	fs_desc = config_setting_get_member(group, "fs_desc");
+	if (fs_desc == NULL) {
+		ERROR("fs_desc not found");
+		return GD_ERROR_NOT_FOUND;
+	}
+
+	if (config_setting_is_list(fs_desc) == CONFIG_FALSE) {
+		ERROR("%s:%d fs_desc: expected list",
+			config_setting_source_file(fs_desc),
+			config_setting_source_line(fs_desc));
+		return GD_ERROR_BAD_VALUE;
+	}
+
+	tmp = gd_ffs_fill_desc_list(fs_desc, &desc[0]);
+	if (tmp < 0)
+		return tmp;
+
+	mask |= FFS_USB_FULL_SPEED;
+
+	hs_desc = config_setting_get_member(group, "hs_desc");
+	if (hs_desc != NULL) {
+		if (config_setting_is_list(hs_desc) == CONFIG_FALSE) {
+			ERROR("%s:%d hs_desc: expected list",
+				config_setting_source_file(hs_desc),
+				config_setting_source_line(hs_desc));
+			return GD_ERROR_BAD_VALUE;
+		}
+		tmp = gd_ffs_fill_desc_list(hs_desc, &desc[1]);
+		if (tmp < 0)
+			return tmp;
+		mask |= FFS_USB_HIGH_SPEED;
+	}
+
+	gd_ffs_fill_desc(srv, desc, mask);
+
+	return GD_SUCCESS;
+}
+
 static void
 gd_ffs_service_cleanup(struct ffs_service *srv)
 {
@@ -779,6 +1221,9 @@ gd_read_ffs_service(const char *path, struct ffs_service *srv,
 	if (tmp < 0 && tmp != GD_ERROR_NOT_DEFINED)
 		goto out;
 	tmp = gd_ffs_lookup_options(root, &srv->options);
+	if (tmp < 0)
+		goto out;
+	tmp = gd_ffs_fill_desc_config(root, srv);
 	if (tmp < 0)
 		goto out;
 
