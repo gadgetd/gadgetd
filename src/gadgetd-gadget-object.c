@@ -26,6 +26,7 @@
 #include <gadgetd-gdbus-codegen.h>
 #include <gadgetd-common.h>
 #include <gadget-strings.h>
+#include <gadget-descriptors.h>
 
 typedef struct _GadgetdGadgetObjectClass   GadgetdGadgetObjectClass;
 
@@ -37,6 +38,7 @@ struct _GadgetdGadgetObject
 	gchar *gadget_name;
 
 	GadgetStrings *g_strings_iface;
+	GadgetDescriptors *g_descriptors_iface;
 };
 
 struct _GadgetdGadgetObjectClass
@@ -73,9 +75,11 @@ gadgetd_gadget_object_finalize(GObject *object)
 	if (gadget_object->g_strings_iface != NULL)
 		g_object_unref (gadget_object->g_strings_iface);
 
+	if (gadget_object->g_descriptors_iface != NULL)
+		g_object_unref(gadget_object->g_descriptors_iface);
+
 	if (G_OBJECT_CLASS(gadgetd_gadget_object_parent_class)->finalize != NULL)
 		G_OBJECT_CLASS(gadgetd_gadget_object_parent_class)->finalize(object);
-
 }
 
 /**
@@ -175,11 +179,16 @@ gadgetd_gadget_object_constructed(GObject *object)
 		   GADGET_TYPE_STRINGS,
 		   &gadget_object->g_strings_iface);
 
+	gadget_object->g_descriptors_iface = gadget_descriptors_new(gadget_object->gadget_name);
+
+	get_iface(gadget_object,
+		   GADGET_TYPE_DESCRIPTORS,
+		   &gadget_object->g_descriptors_iface);
+
 	if (path != NULL && g_variant_is_object_path(path) && gadget_object != NULL)
 		g_dbus_object_skeleton_set_object_path(G_DBUS_OBJECT_SKELETON(gadget_object), path);
 	else
 		ERROR("Unexpected error during gadget object creation");
-
 
 	g_free(path);
 	if (G_OBJECT_CLASS(gadgetd_gadget_object_parent_class)->constructed != NULL)
