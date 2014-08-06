@@ -25,7 +25,7 @@
 #include <gadgetd-gadget-object.h>
 #include <gadgetd-gdbus-codegen.h>
 #include <gadgetd-common.h>
-#include <gadget-manager.h>
+#include <gadget-strings.h>
 
 typedef struct _GadgetdGadgetObjectClass   GadgetdGadgetObjectClass;
 
@@ -35,6 +35,8 @@ struct _GadgetdGadgetObject
 	GadgetDaemon *daemon;
 
 	gchar *gadget_name;
+
+	GadgetStrings *g_strings_iface;
 };
 
 struct _GadgetdGadgetObjectClass
@@ -52,6 +54,11 @@ enum
 	PROPERTY_GADGET_NAME
 };
 
+static void
+get_iface (GadgetdGadgetObject      *object,
+           GType                     skeleton,
+           gpointer                  pointer_to_iface);
+
 /**
  * @brief object finalize
  * @param[in] object GObject
@@ -63,8 +70,12 @@ gadgetd_gadget_object_finalize(GObject *object)
 
 	g_free(gadget_object->gadget_name);
 
+	if (gadget_object->g_strings_iface != NULL)
+		g_object_unref (gadget_object->g_strings_iface);
+
 	if (G_OBJECT_CLASS(gadgetd_gadget_object_parent_class)->finalize != NULL)
 		G_OBJECT_CLASS(gadgetd_gadget_object_parent_class)->finalize(object);
+
 }
 
 /**
@@ -157,10 +168,18 @@ gadgetd_gadget_object_constructed(GObject *object)
 
 	path = g_strdup_printf("%s/%s", gadgetd_path, gadget_object->gadget_name);
 
+	gadget_object->g_strings_iface = gadget_strings_new(gadget_object->gadget_name);
+
+	/* add interfaces */
+	get_iface (gadget_object,
+		   GADGET_TYPE_STRINGS,
+		   &gadget_object->g_strings_iface);
+
 	if (path != NULL && g_variant_is_object_path(path) && gadget_object != NULL)
 		g_dbus_object_skeleton_set_object_path(G_DBUS_OBJECT_SKELETON(gadget_object), path);
 	else
 		ERROR("Unexpected error during gadget object creation");
+
 
 	g_free(path);
 	if (G_OBJECT_CLASS(gadgetd_gadget_object_parent_class)->constructed != NULL)
@@ -226,3 +245,17 @@ gadgetd_gadget_object_new(GadgetDaemon *daemon, const gchar *gadget_name)
 	return object;
 }
 
+static void
+get_iface (GadgetdGadgetObject         *object,
+	   GType                        skeleton,
+	   gpointer                    _pointer_to_iface)
+{
+	GDBusInterface **pointer_to_iface = _pointer_to_iface;
+
+	if (*pointer_to_iface == NULL) {
+		*pointer_to_iface = g_object_new (skeleton, NULL);
+	}
+
+	g_dbus_object_skeleton_add_interface (G_DBUS_OBJECT_SKELETON (object),
+					G_DBUS_INTERFACE_SKELETON (*pointer_to_iface));
+}
