@@ -26,6 +26,7 @@
 
 #include <gadgetd-gdbus-codegen.h>
 #include <gadget-daemon.h>
+#include <gadget-manager.h>
 
 #include <string.h>
 #ifdef G_OS_UNIX
@@ -50,6 +51,8 @@ struct _GadgetDaemon
 	GObject parent_instance;
 	GDBusConnection *connection;
 	GDBusObjectManagerServer *object_manager;
+
+	GadgetdObjectSkeleton *gadget_manager;
 };
 
 struct _GadgetDaemonClass
@@ -182,11 +185,22 @@ static void
 gadget_daemon_constructed(GObject *object)
 {
 	GadgetDaemon *daemon = GADGET_DAEMON(object);
+	GadgetdGadgetManager *gadget_manager;
+	GDBusConnection *connection;
 
 	daemon->object_manager = g_dbus_object_manager_server_new(gadgetd_path);
 
+	connection = gadget_daemon_get_connection(daemon);
+
 	/* export object manager */
 	g_dbus_object_manager_server_set_connection(daemon->object_manager, daemon->connection);
+
+	/* add gadget manager */
+	gadget_manager = gadget_manager_new(daemon);
+	g_dbus_interface_skeleton_export(G_DBUS_INTERFACE_SKELETON(gadget_manager),
+					 connection,
+					 gadgetd_path,
+					 NULL);
 
 	if (G_OBJECT_CLASS(gadget_daemon_parent_class)->constructed != NULL)
 		G_OBJECT_CLASS(gadget_daemon_parent_class)->constructed(object);

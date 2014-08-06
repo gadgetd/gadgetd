@@ -33,6 +33,7 @@ IF(BUILD_EXECUTABLE)
 		src/strdelim.c
 		src/ffs-service.c
 		src/gadget-daemon.c
+		src/gadget-manager.c
 	)
 
 	SET(FFS-DAEMON-SRC
