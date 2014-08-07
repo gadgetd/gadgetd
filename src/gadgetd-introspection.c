@@ -834,6 +834,92 @@ gd_ffs_lookup_options(config_setting_t *root, int *opt)
 }
 
 static int
+gd_ffs_fill_str_config(config_setting_t *root, struct ffs_service *srv)
+{
+	config_setting_t *list;
+	config_setting_t *group;
+	config_setting_t *node;
+	int i, j;
+	int len;
+	const char *str;
+	int lang;
+	int tmp;
+	struct ffs_str_per_lang *res;
+
+	list = config_setting_get_member(root, "strings");
+	if (list == NULL) {
+		ERROR("strings not defined");
+		return GD_ERROR_NOT_FOUND;
+	}
+
+	if (config_setting_is_list(list) == CONFIG_FALSE) {
+		ERROR("%s:%d strings: Expected list",
+			config_setting_source_file(list),
+			config_setting_source_line(list));
+		return GD_ERROR_BAD_VALUE;
+	}
+
+	len = config_setting_length(list);
+	res = calloc(len, sizeof(*res));
+	if (res == NULL)
+		return GD_ERROR_NO_MEM;
+
+	for (i = 0; i < len; i++) {
+		group = config_setting_get_elem(list, i);
+		if (group == NULL) {
+			tmp = GD_ERROR_OTHER_ERROR;
+			goto out;
+		}
+		node = config_setting_get_member(group, "lang");
+		if (node == NULL) {
+			ERROR("lang not defined");
+			tmp = GD_ERROR_BAD_VALUE;
+			goto out;
+		}
+		tmp = gd_setting_get_int(node, &lang);
+		if (tmp < 0)
+			return tmp;
+		node = config_setting_get_member(group, "str");
+		if (node == NULL) {
+			ERROR("str not defined");
+			tmp = GD_ERROR_NOT_FOUND;
+			goto out;
+		}
+		tmp = gd_setting_get_string(node, &str);
+		if (tmp < 0)
+			goto out;
+		res[i].code = lang;
+		res[i].str = calloc(1, sizeof(*res[i].str));
+		res[i].str[0] = strdup(str);
+		if (res[i].str[0] == NULL) {
+			ERROR("error allocating memory");
+			tmp = GD_ERROR_NO_MEM;
+			goto out;
+		}
+	}
+
+	for (i = 0; i < len; i++)
+		for (j = i+1; j < len; j++)
+			if (res[i].code == res[j].code) {
+				ERROR("lang %d defined more than once\n",
+					res[i].code);
+				tmp = GD_ERROR_OTHER_ERROR;
+				goto out;
+			}
+
+	gd_ffs_fill_str(srv, res, len, 1);
+
+	tmp = GD_SUCCESS;
+out:
+	for (i = 0; i < len; i++){
+		free(res[i].str[0]);
+		free(res[i].str);
+	}
+	free(res);
+	return tmp;
+}
+
+static int
 gd_lookup_desc_interface_class(config_setting_t *root, __u8 *cl)
 {
 	const char *buff;
@@ -1224,6 +1310,9 @@ gd_read_ffs_service(const char *path, struct ffs_service *srv,
 	if (tmp < 0)
 		goto out;
 	tmp = gd_ffs_fill_desc_config(root, srv);
+	if (tmp < 0)
+		goto out;
+	tmp = gd_ffs_fill_str_config(root, srv);
 	if (tmp < 0)
 		goto out;
 
