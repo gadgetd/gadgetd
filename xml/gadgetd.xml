@@ -19,19 +19,19 @@
    </method>
   </interface>
   <interface name="org.usb.device.Gadget.Descriptors">
-       <property type="q" name="bcdUSB" access="read"/>
-       <property type="y" name="bDeviceClass" access="read"/>
-       <property type="y" name="bDeviceSubClass" access="read"/>
-       <property type="y" name="bDeviceProtocol" access="read"/>
-       <property type="y" name="bMaxPacketSize0" access="read"/>
-       <property type="q" name="idVendor" access="read"/>
-       <property type="q" name="idProduct" access="read"/>
-       <property type="q" name="bcdDevice" access="read"/>
+       <property type="q" name="bcdUSB" access="readwrite"/>
+       <property type="y" name="bDeviceClass" access="readwrite"/>
+       <property type="y" name="bDeviceSubClass" access="readwrite"/>
+       <property type="y" name="bDeviceProtocol" access="readwrite"/>
+       <property type="y" name="bMaxPacketSize0" access="readwrite"/>
+       <property type="q" name="idVendor" access="readwrite"/>
+       <property type="q" name="idProduct" access="readwrite"/>
+       <property type="q" name="bcdDevice" access="readwrite"/>
   </interface>
   <interface name="org.usb.device.Gadget.Strings">
-       <property type="s" name="serialnumber" access="read"/>
-       <property type="s" name="manufacturer" access="read"/>
-       <property type="s" name="product" access="read"/>
+       <property type="s" name="serialnumber" access="readwrite"/>
+       <property type="s" name="manufacturer" access="readwrite"/>
+       <property type="s" name="product" access="readwrite"/>
   </interface>
   <interface name="org.usb.device.Gadget.FunctionManager">
    <method name="CreateFunction">
