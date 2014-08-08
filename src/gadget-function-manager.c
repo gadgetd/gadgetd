@@ -28,6 +28,8 @@
 
 typedef struct _GadgetFunctionManagerClass   GadgetFunctionManagerClass;
 
+static const char func_manager_iface[] = "org.usb.device.Gadget.FunctionManager";
+
 struct _GadgetFunctionManager
 {
 	GadgetdGadgetFunctionManagerSkeleton parent_instance;
@@ -179,6 +181,43 @@ gadget_function_manager_new(const gchar *gadget_name)
 }
 
 /**
+ * @brief get function type
+ * @param[in] _str_type
+ * @param[out] _type
+ */
+static gboolean
+get_function_type(const gchar *_str_type, usbg_function_type *_type)
+{
+	int i;
+
+	static const struct _f_type
+	{
+		gchar *name;
+		usbg_function_type type;
+	} type[] = {
+		{.name = "gser",  .type = F_SERIAL},
+		{.name = "acm",   .type = F_ACM},
+		{.name = "obex",  .type = F_OBEX},
+		{.name = "geth",  .type = F_SUBSET},
+		{.name = "ecm",   .type = F_ECM},
+		{.name = "ncm",   .type = F_NCM},
+		{.name = "eem",   .type = F_EEM},
+		{.name = "rndis", .type = F_RNDIS},
+		{.name = "phonet",.type = F_PHONET},
+		{.name = "ffs",   .type = F_FFS}
+	};
+
+	for (i=0; i < G_N_ELEMENTS(type); i++) {
+		if (g_strcmp0(type[i].name, _str_type) == 0) {
+			*_type = type[i].type;
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+/**
  * @brief Create function handler
  * @param[in] object
  * @param[in] invocation
@@ -190,12 +229,75 @@ static gboolean
 handle_create_function(GadgetdGadgetFunctionManager	*object,
 		        GDBusMethodInvocation		*invocation,
 		        const gchar			*instance,
-		        const gchar			*_type)
+		        const gchar			*_str_type)
 {
+	gchar _cleanup_g_free_ *function_path = NULL;
+	gint usbg_ret = USBG_SUCCESS;
+	usbg_function_type type;
+	usbg_gadget *g = NULL;
+	usbg_function *f;
+	const gchar *msg = NULL;
+	GadgetFunctionManager *func_manager = GADGET_FUNCTION_MANAGER(object);
+
 	/* TODO add create function handler */
 	INFO("handled create function");
 
+	if (!instance)
+		return FALSE;
+
+	if (!get_function_type(_str_type, &type)) {
+		msg = "Invalid function type";
+		goto err;
+	}
+
+	if (func_manager->gadget_name == NULL) {
+		msg = "Unknown gadget name";
+		goto err;
+	}
+
+	function_path = g_strdup_printf("%s/%s/%s/%s",
+					gadgetd_path,
+					func_manager->gadget_name,
+					_str_type,
+					instance);
+
+	if (function_path == NULL || !g_variant_is_object_path(function_path)) {
+		msg = "Invalid function instance or type";
+		goto err;
+	}
+
+	g = usbg_get_gadget(ctx.state, func_manager->gadget_name);
+	if (g == NULL) {
+		msg = "Cant get a gadget device by name";
+		goto err;
+	}
+
+	usbg_ret = usbg_create_function(g,
+					type,
+					instance,
+					NULL,
+					&f);
+
+	if (usbg_ret != USBG_SUCCESS) {
+		ERROR("Error on function create");
+		ERROR("Error: %s: %s", usbg_error_name(usbg_ret),
+			usbg_strerror(usbg_ret));
+		msg = usbg_error_name(usbg_ret);
+		goto err;
+	}
+
+	/* TODO add dbus object wit function and interface */
+	/* send function path*/
+	g_dbus_method_invocation_return_value(invocation,
+					      g_variant_new("(o)",
+					      function_path));
 	return TRUE;
+
+err:
+	g_dbus_method_invocation_return_dbus_error(invocation,
+			func_manager_iface,
+			msg);
+	return FALSE;
 }
 
 /**
