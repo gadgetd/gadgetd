@@ -1325,3 +1325,90 @@ out:
 
 	return tmp;
 }
+
+static int
+gd_example_file_filter(const struct dirent *dir)
+{
+	const char *pos;
+	char ext[] = ".example";
+	int len;
+	int res;
+
+	pos = dir->d_name;
+	if (pos[0] == '.')
+		return 0;
+	len = strlen(pos);
+	pos += len - sizeof(ext) + 1;
+	res = strcmp(pos, ext);
+	return res;
+}
+
+int
+gd_ffs_services_from_dir(const char *path, struct ffs_service ***srvs)
+{
+	struct dirent **namelist;
+	int num;
+	int i;
+	int tmp;
+	int pathlen, namelen;
+	char filepath[PATH_MAX];
+	struct ffs_service *srv;
+
+	if (path == NULL || srvs == NULL)
+		return GD_ERROR_INVALID_PARAM;
+
+	num = scandir(path, &namelist, gd_example_file_filter, alphasort);
+	if (num < 0) {
+		tmp = gd_translate_error(errno);
+		ERROR("error reading directory");
+		return tmp;
+	}
+
+	*srvs = calloc(num + 1, sizeof(struct ffs_service *));
+	if (*srvs == NULL) {
+		tmp = GD_ERROR_NO_MEM;
+		goto out;
+	}
+
+	tmp = snprintf(filepath, PATH_MAX, "%s/", path);
+	if (tmp >= PATH_MAX) {
+		ERROR("path too long");
+		tmp = GD_ERROR_PATH_TOO_LONG;
+		goto out;
+	}
+
+	pathlen = tmp;
+	for (i = 0; i < num; i++) {
+		namelen = strlen(namelist[i]->d_name);
+		if (pathlen + namelen >= PATH_MAX) {
+			ERROR("path too long");
+			tmp = GD_ERROR_PATH_TOO_LONG;
+			goto out;
+		}
+
+		strncpy(filepath + pathlen, namelist[i]->d_name, namelen + 1);
+
+		srv = malloc(sizeof(*srv));
+		if (srv == NULL) {
+			tmp = GD_ERROR_NO_MEM;
+			goto out;
+		}
+
+		tmp = gd_read_ffs_service(filepath, srv, 1);
+		if (tmp < 0) {
+			ERROR("%s: file parsing failed", filepath);
+			goto out;
+		}
+
+		(*srvs)[i] = srv;
+	}
+
+	return num;
+out:
+	if (*srvs)
+		for (i = 0; i < num; i++)
+			free((*srvs)[i]);
+	free(*srvs);
+	*srvs = NULL;
+	return tmp;
+}
