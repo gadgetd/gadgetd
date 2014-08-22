@@ -50,7 +50,7 @@ struct ffs_desc_per_seed {
 
 struct ffs_str_per_lang {
 	__le16 code;
-	char *str[];
+	char **str;
 } __attribute__ ((__packed__));
 
 /* Currently only exec is done, rest is TODO */
