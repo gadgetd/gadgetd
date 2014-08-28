@@ -147,6 +147,8 @@ main(int argc, char **argv)
 {
 	int g_ret = GD_SUCCESS;
 
+	setvbuf(stderr, NULL, _IONBF, 0);
+
 	g_ret = init_config_attrs(&config);
 	if (g_ret != GD_SUCCESS) {
                 ERROR("Error alocating memory\n");

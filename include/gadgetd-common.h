@@ -38,29 +38,10 @@ typedef enum  {
 } gd_error;
 
 
-#define ERROR(msg, ...) do {\
-                        fprintf(stderr, "%s()  "msg" \n", \
-                                __func__, ##__VA_ARGS__);\
-                        fflush(stderr);\
-                    } while (0)
-
-#define ERRNO(msg, ...) do {\
-                        fprintf(stderr, "%s()  %s: "msg" \n", \
-                                __func__, strerror(errno), ##__VA_ARGS__);\
-                        fflush(stderr);\
-                    } while (0)
-
-#define INFO(msg, ...) do {\
-                        fprintf(stdout, "%s()  "msg" \n", \
-                                __func__, ##__VA_ARGS__);\
-                        fflush(stderr);\
-                    } while (0)
-
-#define DEBUG(msg, ...) do {\
-                        fprintf(stderr, "%s()  "msg" \n", \
-                                __func__, ##__VA_ARGS__);\
-                        fflush(stderr);\
-                    } while (0)
+#define ERROR(msg, ...) fprintf(stderr, "%s()  "msg" \n",  __func__, ##__VA_ARGS__)
+#define ERRNO(msg, ...) fprintf(stderr, "%s()  "msg": %m \n", __func__, ##__VA_ARGS__)
+#define INFO(msg, ...)  fprintf(stderr, "%s()  "msg" \n", __func__, ##__VA_ARGS__)
+#define DEBUG(msg, ...) fprintf(stderr, "%s():%d  "msg" \n", __func__, LINENO, ##__VA_ARGS__)
 
 /**
  * @brief Translate errno into gadgetd error code
