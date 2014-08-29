@@ -56,6 +56,12 @@ typedef enum  {
                         fflush(stderr);\
                     } while (0)
 
+#define DEBUG(msg, ...) do {\
+                        fprintf(stderr, "%s()  "msg" \n", \
+                                __func__, ##__VA_ARGS__);\
+                        fflush(stderr);\
+                    } while (0)
+
 /**
  * @brief Translate errno into gadgetd error code
  **/
