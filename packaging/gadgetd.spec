@@ -64,6 +64,7 @@ make
 %defattr(-,root,root)
 %license LICENSE
 /usr/local/bin/gadgetd
+/etc/dbus-1/system.d/org.usb.gadgetd.conf
 
 %files -n libffs-daemon
 /usr/local/lib/libffs-daemon.so.0
