@@ -32,10 +32,7 @@
 #include <assert.h>
 
 #include "ffs-service.h"
-#include "gadgetd-common.h"
-
-#define likely(x)       __builtin_expect((x),1)
-#define unlikely(x)     __builtin_expect((x),0)
+#include "common.h"
 
 struct ffs_service *
 gd_ref_ffs_service(struct ffs_service *srv)

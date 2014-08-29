@@ -22,6 +22,7 @@
 #include <sys/param.h>
 #include <sys/utsname.h>
 #include <limits.h>
+#include <errno.h>
 
 #include <gadgetd-config.h>
 #include <gadgetd-create.h>
