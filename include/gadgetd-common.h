@@ -20,6 +20,7 @@
  * @brief gadgetd functions
  */
 
+#include <glib.h>
 #include "common.h"
 
 typedef enum  {
@@ -40,3 +41,9 @@ typedef enum  {
  * @brief Translate errno into gadgetd error code
  **/
 int gd_translate_error(int error);
+
+static inline void _cleanup_fn_g_free_(void *p) {
+	g_free(*(gpointer *)p);
+}
+
+#define _cleanup_g_free_ _cleanup_(_cleanup_fn_g_free_)

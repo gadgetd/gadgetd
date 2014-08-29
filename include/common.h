@@ -29,4 +29,11 @@
 #define likely(x)       __builtin_expect((x),1)
 #define unlikely(x)     __builtin_expect((x),0)
 
+static inline void _cleanup_fn_free_(void *p) {
+	free(*(void **)p);
+}
+
+#define _cleanup_(fn)   __attribute__((cleanup(fn)))
+#define _cleanup_free_  _cleanup_(_cleanup_fn_free_)
+
 #endif /* COMMON_H */
