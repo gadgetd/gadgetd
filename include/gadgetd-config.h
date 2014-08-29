@@ -14,6 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef GADGETD_CONFIG_H
+#define GADGETD_CONFIG_H
 
 /**
  * @file gadgetd-config.h
@@ -46,3 +48,5 @@ int gd_read_config_file(struct gd_config *pconfig);
 char *gd_check_conf_file(char *file);
 int gd_parse_value(char *s, char **charptr, int *intptr,
                    const char *filename, int linenum);
+
+#endif /* GADGETD_CONFIG */

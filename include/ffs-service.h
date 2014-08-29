@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __GADGETD_FFS_SERVICE_H
-#define __GADGETD_FFS_SERVICE_H
+#ifndef FFS_SERVICE_H
+#define FFS_SERVICE_H
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -129,4 +129,4 @@ int gd_ffs_fill_str(struct ffs_service *srv, struct ffs_str_per_lang *str,
 
 void gd_ffs_put_str(struct ffs_service *srv);
 
-#endif
+#endif /* FFS_SERVICE_H */

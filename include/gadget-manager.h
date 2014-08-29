@@ -19,8 +19,6 @@
 #define GADGET_MANAGER_H
 
 #include <glib-object.h>
-#include <gio/gio.h>
-#include <usbg/usbg.h>
 
 G_BEGIN_DECLS
 

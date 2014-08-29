@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __GADGETD_FFS_DAEMON_H
-#define __GADGETD_FFS_DAEMON_H
+#ifndef FFS_DAEMON_H
+#define FFS_DAEMON_H
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -60,4 +60,4 @@ inline int gd_get_ep_by_nmb(int nmb)
 */
 enum usb_functionfs_event_type gd_get_activation_event(int unset_environment);
 
-#endif /* __GADGETD_FFS_DAEMON_H */
+#endif /* FFS_DAEMON_H */

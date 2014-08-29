@@ -14,6 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef GADGETD_INTROSPECTION_H
+#define GADGETD_INTROSPECTION_H
 
 #include <glib.h>
 
@@ -24,3 +26,5 @@
  * @return Error code if failed or GD_SUCCESS if succeed
  **/
 int gd_list_functions(gchar ***dest);
+
+#endif /* GADGETD_INTROSPECTION_H */

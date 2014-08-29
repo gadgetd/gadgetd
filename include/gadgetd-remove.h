@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __GADGETD_REMOVE_H__
-#define __GADGETD_REMOVE_H__
+#ifndef GADGETD_REMOVE_H
+#define GADGETD_REMOVE_H
 
 #include <usbg/usbg.h>
 #include <stdio.h>
@@ -30,4 +30,4 @@
 
 void remove_gadget(void);
 
-#endif /* __GADGETD_REMOVE_H__ */
+#endif /* GADGETD_REMOVE_H */

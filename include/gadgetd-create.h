@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __GADGETD_CREATE_H__
-#define __GADGETD_CREATE_H__
+#ifndef GADGETD_CREATE_H
+#define GADGETD_CREATE_H
 
 #include <stdint.h>
 #include <usbg/usbg.h>
@@ -28,4 +28,4 @@
 
 int create_gadget(void);
 
-#endif /* __GADGETD_CREATE_H__ */
+#endif /* GADGETD_CREATE_H */

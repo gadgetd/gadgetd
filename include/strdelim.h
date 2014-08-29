@@ -14,6 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef STRDELIM_H
+#define STRDELIM_H
 
 /**
  * @file strdelim.h
@@ -22,3 +24,5 @@
 
 
 char *strdelim(char **s);
+
+#endif /* STRDELIM_H */

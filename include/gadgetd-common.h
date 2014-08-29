@@ -14,6 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef GADGETD_COMMON_H
+#define GADGETD_COMMON_H
 
 /**
  * @file gadgetd-common.h
@@ -47,3 +49,5 @@ static inline void _cleanup_fn_g_free_(void *p) {
 }
 
 #define _cleanup_g_free_ _cleanup_(_cleanup_fn_g_free_)
+
+#endif /* GADGETD_COMMON_H */
