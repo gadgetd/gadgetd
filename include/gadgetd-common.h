@@ -24,6 +24,7 @@
 
 #include <glib.h>
 #include "common.h"
+#include <usbg/usbg.h>
 
 typedef enum  {
 	GD_SUCCESS = 0,
@@ -38,6 +39,13 @@ typedef enum  {
 	GD_ERROR_NOT_DEFINED = -10,
 	GD_ERROR_OTHER_ERROR = -99
 } gd_error;
+
+struct gd_context
+{
+	usbg_state *state;
+};
+
+extern struct gd_context ctx;
 
 /**
  * @brief Translate errno into gadgetd error code

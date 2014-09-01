@@ -25,7 +25,10 @@
 #include <gadget-daemon.h>
 #include "gadgetd-gdbus-codegen.h"
 #include <gadget-manager.h>
+#include <gadgetd-config.h>
+#include <usbg/usbg.h>
 #include <gadgetd-common.h>
+
 
 typedef struct _GadgetManagerClass   GadgetManagerClass;
 
@@ -48,6 +51,8 @@ enum
 	PROPERTY,
 	PROPERTY_DAEMON,
 };
+
+static const char manager_iface[] = "org.usb.device.GadgetManager";
 
 static void gadget_manager_iface_init(GadgetdGadgetManagerIface *iface);
 
@@ -191,7 +196,150 @@ gadget_manager_get_daemon(GadgetManager *manager)
 	return manager->daemon;
 }
 
-/*
+/**
+ * @brief Parse strings
+ * @param[in] strings GVariant
+ * @return true if parsed
+ */
+static gboolean
+parse_strings(GVariant *strings, usbg_gadget *g)
+{
+	GVariant *value;
+	GVariantIter *iter;
+	const gchar *key;
+	const gchar *str;
+	gint i;
+	gint count = 0;
+
+	g_variant_get(strings, "a{sv}", &iter);
+
+	static const struct {
+		char* name;
+		int (*gchar_func)(usbg_gadget *,int, const gchar *str);
+	} strs[] = {
+		{ "serialnumber", usbg_set_gadget_serial_number       },
+		{ "manufacturer", usbg_set_gadget_manufacturer        },
+		{ "product",      usbg_set_gadget_product             }
+	};
+
+	while(g_variant_iter_next(iter, "{&sv}", &key, &value)) {
+		count++;
+		if (count > G_N_ELEMENTS(strs))
+			goto out;
+		for (i = 0; i < G_N_ELEMENTS(strs); i++) {
+			if (g_strcmp0(key, strs[i].name) == 0) {
+				if (!g_variant_is_of_type(value, G_VARIANT_TYPE("s")))
+					goto out;
+				str = g_variant_get_string(value, NULL);
+				/* actually strings available only in en_US lang */
+				strs[i].gchar_func(g, LANG_US_ENG, str);
+				g_variant_unref(value);
+				break;
+			}
+		}
+		if (i == G_N_ELEMENTS(strs))
+			goto out;
+	}
+	g_variant_iter_free(iter);
+
+	return TRUE;
+out:
+	g_variant_iter_free(iter);
+	return FALSE;
+}
+
+/**
+ * @brief parse descriptors
+ * @param[in] descriptors
+ * @return true if parsed
+ */
+static gboolean
+parse_descriptors(GVariant *descriptors, usbg_gadget *g)
+{
+	GVariant *value;
+	GVariantIter *iter;
+	const gchar *key;
+	gint i;
+	int count = 0;
+
+	g_variant_get(descriptors, "a{sv}", &iter);
+
+	static const struct {
+		char* name;
+		int  type;
+		int (*guint8_func)(usbg_gadget *,  uint8_t);
+		int (*guint16_func)(usbg_gadget *, uint16_t);
+	} descs[] = {
+		{ "bcdUSB",          'q', NULL, usbg_set_gadget_device_bcd_usb     },
+		{ "bDeviceClass",    'y', usbg_set_gadget_device_class, NULL       },
+		{ "bDeviceSubClass", 'y', usbg_set_gadget_device_subclass, NULL    },
+		{ "bDeviceProtocol", 'y', usbg_set_gadget_device_protocol, NULL    },
+		{ "bMaxPacketSize0", 'y', usbg_set_gadget_device_max_packet, NULL  },
+		{ "idVendor",        'q', NULL, usbg_set_gadget_vendor_id          },
+		{ "idProduct",       'q', NULL, usbg_set_gadget_product_id         },
+		{ "bcdDevice",       'q', NULL, usbg_set_gadget_device_bcd_device  }
+	};
+
+	while(g_variant_iter_next(iter, "{&sv}", &key, &value)) {
+		count++;
+		if (count > G_N_ELEMENTS(descs))
+			goto out;
+		for (i = 0; i < G_N_ELEMENTS(descs); i++) {
+			if (g_strcmp0(key, descs[i].name) == 0) {
+				switch(descs[i].type) {
+				case 'q':
+					if (!g_variant_is_of_type(value, G_VARIANT_TYPE("q")))
+						goto out;
+					guint16 val16 = g_variant_get_uint16(value);
+					descs[i].guint16_func(g, val16);
+					break;
+				case 'y':
+					if (!g_variant_is_of_type(value, G_VARIANT_TYPE("y")))
+						goto out;
+					guint8 val8 = g_variant_get_byte(value);
+					descs[i].guint8_func(g, val8);
+					break;
+				default:
+					goto out;
+					break;
+				}
+				g_variant_unref(value);
+				break;
+			}
+		}
+		if (i == G_N_ELEMENTS(descs))
+			goto out;
+	}
+	g_variant_iter_free(iter);
+
+	return TRUE;
+out:
+	g_variant_iter_free(iter);
+	return FALSE;
+}
+
+static gboolean
+get_data(GVariant *descriptors, GVariant *strings, usbg_gadget *g)
+{
+	/*descriptors*/
+	if (descriptors != NULL) {
+		if (parse_descriptors(descriptors, g) == TRUE)
+			DEBUG("parse descriptors\n");
+		else
+			return FALSE;
+	}
+	/*strings*/
+	if (strings != NULL) {
+		if (parse_strings(strings, g) == TRUE)
+			DEBUG("parse strings\n");
+		else
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
+/**
  * @brief Create gadget handler
  * @param[in] object GadgetdGadgetManager object
  * @param[in] invocation
@@ -207,10 +355,58 @@ handle_create_gadget(GadgetdGadgetManager	*object,
 		      GVariant			*descriptors,
 		      GVariant			*strings)
 {
-	/*TODO handle create gadget*/
-	INFO("create gadget handler");
+	gint g_ret = 0;
+	gint usbg_ret = USBG_SUCCESS;
+	usbg_gadget *g;
+	const char *msg = "Unknown error";
+	gchar *path;
+
+	INFO("handled create gadget \n");
+
+	path = g_strdup_printf("%s/%s", gadgetd_path, gadget_name);
+
+	if (path == NULL || !g_variant_is_object_path(path)) {
+		msg = "Invalid gadget name";
+		goto out;
+	}
+
+	/* CREATE GADGET()*/
+	usbg_ret = usbg_create_gadget(ctx.state,
+				   gadget_name,
+				   NULL,
+				   NULL,
+				   &(g));
+
+	if (usbg_ret != USBG_SUCCESS) {
+		ERROR("Error on create gadget\n");
+		ERROR("Error: %s : %s\n", usbg_error_name(g_ret),
+			usbg_strerror(g_ret));
+		msg = usbg_error_name(g_ret);
+		goto out;
+	}
+
+	/*get strings and descriptors*/
+	g_ret = get_data(descriptors, strings, g);
+	if (!g_ret) {
+		ERROR("Invalid argument\n");
+		usbg_rm_gadget(g, USBG_RM_RECURSE);
+		msg = "Invalid strings or descriptors argument";
+		goto out;
+	}
+
+	/* send gadget path*/
+	g_dbus_method_invocation_return_value(invocation,
+					      g_variant_new("(o)", path));
+	g_free(path);
 
 	return TRUE;
+
+out:
+	g_dbus_method_invocation_return_dbus_error(invocation,
+			manager_iface,
+			msg);
+	g_free(path);
+	return FALSE;
 }
 
 /**

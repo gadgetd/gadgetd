@@ -39,6 +39,7 @@
 #define CONFIGFS_MNT	 "/sys/kernel/config"
 
 struct gd_config config;
+struct gd_context ctx;
 
 static void
 usage() {
@@ -141,6 +142,17 @@ gd_read_config(int argc, char * const argv[], struct gd_config *pconfig)
 	return g_ret;
 }
 
+inline static int
+gd_ctx_init(void)
+{
+	int usbg_ret = GD_SUCCESS;
+	usbg_ret = usbg_init(config.configfs_mnt, &ctx.state);
+	if (usbg_ret != USBG_SUCCESS) {
+		ERROR("Error: %s : %s\n", usbg_error_name(usbg_ret),
+				usbg_strerror(usbg_ret));
+	}
+	return usbg_ret;
+}
 
 int
 main(int argc, char **argv)
@@ -151,19 +163,27 @@ main(int argc, char **argv)
 
 	g_ret = init_config_attrs(&config);
 	if (g_ret != GD_SUCCESS) {
-                ERROR("Error alocating memory\n");
-        }
+		ERROR("Error alocating memory\n");
+	}
 
 	g_ret = gd_read_config(argc, argv, &config);
 	if (g_ret != GD_SUCCESS) {
-                ERROR("Error reading default config\n");
-        }
+		ERROR("Error reading default config\n");
+	}
+
+	g_ret = gd_ctx_init();
+	if (g_ret != USBG_SUCCESS) {
+		ERROR("Error on USB gadget init\n");
+		goto out;
+	}
+
 
 	g_ret = gadget_daemon_run();
 	if (g_ret != GD_SUCCESS) {
 		ERROR("Error : Cannot run dbus service\n");
 	}
 
+out:
 	gd_free_config(&config);
 	return g_ret;
 }
