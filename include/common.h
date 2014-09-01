@@ -24,7 +24,7 @@
 #define ERROR(msg, ...) fprintf(stderr, "%s()  "msg" \n",  __func__, ##__VA_ARGS__)
 #define ERRNO(msg, ...) fprintf(stderr, "%s()  "msg": %m \n", __func__, ##__VA_ARGS__)
 #define INFO(msg, ...)  fprintf(stderr, "%s()  "msg" \n", __func__, ##__VA_ARGS__)
-#define DEBUG(msg, ...) fprintf(stderr, "%s():%d  "msg" \n", __func__, LINENO, ##__VA_ARGS__)
+#define DEBUG(msg, ...) fprintf(stderr, "%s():%d  "msg" \n", __func__, __LINE__, ##__VA_ARGS__)
 
 #define likely(x)       __builtin_expect((x),1)
 #define unlikely(x)     __builtin_expect((x),0)
