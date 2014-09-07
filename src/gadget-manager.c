@@ -370,7 +370,7 @@ handle_create_gadget(GadgetdGadgetManager	*object,
 
 	daemon = gadget_manager_get_daemon(GADGET_MANAGER(object));
 
-	INFO("handled create gadget \n");
+	INFO("handled create gadget");
 
 	if (g_strcmp0(gadget_name, "") == 0
 	    || (path = g_strdup_printf("%s/%s", gadgetd_path, gadget_name)) == NULL

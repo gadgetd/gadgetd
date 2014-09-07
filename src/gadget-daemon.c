@@ -293,7 +293,7 @@ on_name_acquired(GDBusConnection *connection,
 		  const gchar     *name,
 		  gpointer         user_data)
 {
-	INFO("Acquired the name %s\n", name);
+	INFO("Acquired the name %s", name);
 
 }
 
@@ -309,7 +309,7 @@ on_name_lost(GDBusConnection *connection,
 	      const gchar   *name,
 	      gpointer       user_data)
 {
-	INFO("Lost the name %s\n", name);
+	INFO("Lost the name %s", name);
 }
 
 /**

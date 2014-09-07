@@ -141,7 +141,7 @@ gadget_descriptors_set_property(GObject      *object,
 	}
 	if (usbg_ret != USBG_SUCCESS) {
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-		ERROR("Error: %s : %s\n", usbg_error_name(usbg_ret),
+		ERROR("Error: %s: %s", usbg_error_name(usbg_ret),
 				usbg_strerror(usbg_ret));
 	}
 }

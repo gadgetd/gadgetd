@@ -272,7 +272,7 @@ gd_read_config_line(struct gd_config *pconfig, usbg_gadget_attrs *g_attrs,
 		break;
 	default:
 		break;
-		ERROR("unnknown eror %d\n", opcode);
+		ERROR("unnknown eror %d", opcode);
 		g_ret = GD_ERROR_OTHER_ERROR;
 	}
 
@@ -281,25 +281,25 @@ gd_read_config_line(struct gd_config *pconfig, usbg_gadget_attrs *g_attrs,
 	if (uint8ptr) {
 		g_ret = gd_parse_uint8_value(s, uint8ptr);
 		if(g_ret != 0)
-			ERROR("bad value in file %.100s at line %d expected uint8\n",
+			ERROR("bad value in file %.100s at line %d expected uint8",
 				filename, linenum);
 	}
 	else if (uint16ptr) {
 		g_ret = gd_parse_uint16_value(s, uint16ptr) ;
 		if(g_ret != 0)
-			ERROR("bad value in file %.100s at line %d, expected uint16\n",
+			ERROR("bad value in file %.100s at line %d, expected uint16",
 				filename, linenum);
 	}
 	else if (charptr) {
 		g_ret = gd_parse_string(s, charptr);
 		if(g_ret != 0)
-			ERROR("bad value in file %.100s at line %d, expected char[%d]\n",
+			ERROR("bad value in file %.100s at line %d, expected char[%d]",
 				filename, linenum, USBG_MAX_STR_LENGTH);
 	}
 	else if (charptr2) {
 		g_ret = gd_parse_str_value(s, charptr2) ;
 		if(g_ret != 0)
-			ERROR("bad value in file %.100s at line %d\n",
+			ERROR("bad value in file %.100s at line %d",
 				filename, linenum);
 	}
 
@@ -319,11 +319,11 @@ gd_read_config_file(struct gd_config *pconfig)
 
 	filename = pconfig->gd_config_file_path;
 
-	INFO("read config file %s\n", filename);
+	INFO("read config file %s", filename);
 
 	fp = fopen(filename, "r");
 	if (fp == NULL) {
-		ERROR("read config failed\n");
+		ERROR("read config failed");
 		return GD_ERROR_FILE_OPEN_FAILED;
 	}
 
@@ -339,13 +339,13 @@ gd_read_config_file(struct gd_config *pconfig)
 		else if(g_ret != 0)
 			bad_opt++;
 	}
-	INFO("close config file\n");
+	INFO("close config file");
 
 	fclose(fp);
 
 	if (bad_opt > 0)
 		/*error handle*/
-		ERROR("config file %s:, contain %d bad options\n",
+		ERROR("config file %s:, contain %d bad options",
 			filename, bad_opt);
 out:
 	return g_ret;

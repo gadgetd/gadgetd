@@ -129,7 +129,7 @@ gadget_strings_set_property(GObject        *object,
 	g_free(str);
 	if (usbg_ret != USBG_SUCCESS) {
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-		ERROR("Error: %s : %s\n", usbg_error_name(usbg_ret),
+		ERROR("Error: %s: %s", usbg_error_name(usbg_ret),
 				usbg_strerror(usbg_ret));
 	}
 }
@@ -167,7 +167,7 @@ gadget_strings_get_property(GObject     *object,
 	/* actualize data for gadget */
 	usbg_ret = usbg_get_gadget_strs(g, LANG_US_ENG, &g_strs);
 	if (usbg_ret) {
-		ERROR("Cant get the USB gadget strings\n");
+		ERROR("Cant get the USB gadget strings");
 		return;
 	}
 
