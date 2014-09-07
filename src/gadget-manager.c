@@ -223,6 +223,25 @@ strings_set(GVariant *strings, usbg_gadget *g)
 
 	g_variant_get(strings, "a{sv}", &iter);
 
+	if (g_variant_iter_n_children(iter) == 0) {
+		/* Ensure that at least one string is set when creating gadget.
+		 *
+		 * Kernel driver provides set of strings (manufacturer, serial,
+		 * product) to USB host only if at least one of them has been
+		 * set. In gadgetd we follow the most popular convention that
+		 * each USB device should provide strings in English (US).
+		 *
+		 * If user didn't provide value for any of strings we create
+		 * empty one. This is information for driver that this gadget
+		 * provides strings in English and all three are empty.
+		 */
+		usbg_ret = strs[0].s_func(g, LANG_US_ENG, "");
+		if (usbg_ret != USBG_SUCCESS) {
+			ERROR("Unable to set string '%s': %s", key, usbg_error_name(usbg_ret));
+			goto out;
+		}
+	}
+
 	while (g_variant_iter_next(iter, "{&sv}", &key, &value)) {
 		for (found = FALSE, i = 0; i < G_N_ELEMENTS(strs); i++) {
 			if (g_strcmp0(key, strs[i].name) != 0)
