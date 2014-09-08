@@ -233,14 +233,13 @@ strings_set(GVariant *strings, usbg_gadget *g)
 
 			/* strings are currently available en_US locale only */
 			usbg_ret = strs[i].s_func(g, LANG_US_ENG, g_variant_get_string(value, NULL));
-
-			g_variant_unref(value);
-			found = TRUE;
-
 			if (usbg_ret != USBG_SUCCESS) {
 				ERROR("Unable to set string '%s': %s", key, usbg_error_name(usbg_ret));
 				goto out;
 			}
+
+			g_variant_unref(value);
+			found = TRUE;
 			break;
 		}
 		if (!found)
@@ -304,13 +303,13 @@ descriptors_set(GVariant *descriptors, usbg_gadget *g)
 			else
 				goto out;
 
-			g_variant_unref(value);
-			found = TRUE;
-
 			if (usbg_ret != USBG_SUCCESS) {
 				ERROR("Unable to set descriptor '%s': %s", key, usbg_error_name(usbg_ret));
 				goto out;
 			}
+
+			g_variant_unref(value);
+			found = TRUE;
 			break;
 		}
 		if (!found)
