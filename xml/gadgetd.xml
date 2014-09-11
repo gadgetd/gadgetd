@@ -48,6 +48,36 @@
        <arg type="o" name="function_path" direction="out"/>
    </method>
   </interface>
+  <interface name="org.usb.device.Gadget.ConfigManager">
+   <method name="CreateConfig">
+       <arg type="i" name="config_id" direction="in"/>
+       <arg type="s" name="config_label" direction="in"/>
+       <arg type="o" name="config_path" direction="out"/>
+   </method>
+    <method name="RemoveConfig">
+       <arg type="o" name="config_path" direction="in"/>
+       <arg type="b" name="config_removed" direction="out"/>
+   </method>
+    <method name="FindConfigById">
+       <arg type="i" name="config_id" direction="in"/>
+       <arg type="o" name="config_path" direction="out"/>
+   </method>
+  </interface>
+  <interface name="org.usb.device.Gadget.Config">
+   <method name="AttachFunction">
+       <arg type="o" name="function_path" direction="in"/>
+       <arg type="b" name="function_added" direction="out"/>
+   </method>
+   <property type="i" name="id" access="read"/>
+   <property type="s" name="label" access="read"/>
+  </interface>
+  <interface name="org.usb.device.Config.Strings">
+       <property type="s" name="configuration" access="readwrite"/>
+  </interface>
+  <interface name="org.usb.device.Config.Attrs">
+       <property type="y" name="bmAttributes" access="readwrite"/>
+       <property type="y" name="bMaxPower" access="readwrite"/>
+  </interface>
 </node>
 
 
