@@ -25,6 +25,7 @@
 #include <glib.h>
 #include "common.h"
 #include <usbg/usbg.h>
+#include <gio/gio.h>
 
 typedef enum  {
 	GD_SUCCESS = 0,
@@ -46,6 +47,11 @@ struct gd_context
 };
 
 extern struct gd_context ctx;
+
+/**
+ * @brief Get interface
+ **/
+void get_iface (GObject *object, GType skeleton, gpointer pointer_to_iface);
 
 /**
  * @brief Translate errno into gadgetd error code

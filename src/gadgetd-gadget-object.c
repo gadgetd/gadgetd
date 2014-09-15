@@ -58,11 +58,6 @@ enum
 	PROPERTY_GADGET_NAME
 };
 
-static void
-get_iface (GadgetdGadgetObject      *object,
-           GType                     skeleton,
-           gpointer                  pointer_to_iface);
-
 /**
  * @brief object finalize
  * @param[in] object GObject
@@ -183,20 +178,20 @@ gadgetd_gadget_object_constructed(GObject *object)
 	gadget_object->g_strings_iface = gadget_strings_new(gadget_object->gadget_name);
 
 	/* add interfaces */
-	get_iface (gadget_object,
+	get_iface (G_OBJECT(gadget_object),
 		   GADGET_TYPE_STRINGS,
 		   &gadget_object->g_strings_iface);
 
 	gadget_object->g_descriptors_iface = gadget_descriptors_new(gadget_object->gadget_name);
 
-	get_iface(gadget_object,
+	get_iface(G_OBJECT(gadget_object),
 		   GADGET_TYPE_DESCRIPTORS,
 		   &gadget_object->g_descriptors_iface);
 
 	gadget_object->g_func_manager_iface = gadget_function_manager_new(daemon,
 									  gadget_object->gadget_name);
 
-	get_iface (gadget_object,
+	get_iface (G_OBJECT(gadget_object),
 		   GADGET_TYPE_FUNCTION_MANAGER,
 		   &gadget_object->g_func_manager_iface);
 
@@ -267,19 +262,4 @@ gadgetd_gadget_object_new(GadgetDaemon *daemon, const gchar *gadget_name)
 			      NULL);
 
 	return object;
-}
-
-static void
-get_iface (GadgetdGadgetObject         *object,
-	   GType                        skeleton,
-	   gpointer                    _pointer_to_iface)
-{
-	GDBusInterface **pointer_to_iface = _pointer_to_iface;
-
-	if (*pointer_to_iface == NULL) {
-		*pointer_to_iface = g_object_new (skeleton, NULL);
-	}
-
-	g_dbus_object_skeleton_add_interface (G_DBUS_OBJECT_SKELETON (object),
-					G_DBUS_INTERFACE_SKELETON (*pointer_to_iface));
 }

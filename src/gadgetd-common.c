@@ -43,3 +43,16 @@ gd_error gd_translate_error(int error)
 
 	return ret;
 }
+
+void
+get_iface (GObject *object, GType skeleton, gpointer _pointer_to_iface)
+{
+	GDBusInterface **pointer_to_iface = _pointer_to_iface;
+
+	if (*pointer_to_iface == NULL) {
+		*pointer_to_iface = g_object_new(skeleton, NULL);
+	}
+
+	g_dbus_object_skeleton_add_interface(G_DBUS_OBJECT_SKELETON (object),
+					G_DBUS_INTERFACE_SKELETON (*pointer_to_iface));
+}
