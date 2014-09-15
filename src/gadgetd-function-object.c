@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <glib-object.h>
+#include <usbg/usbg.h>
 
 #include <gio/gio.h>
 #include <glib/gprintf.h>
@@ -26,6 +27,7 @@
 #include <gadgetd-gdbus-codegen.h>
 #include <gadgetd-common.h>
 #include <gadget-function-manager.h>
+#include <dbus-function-ifaces/gadgetd-serial-function-iface.h>
 
 typedef struct _GadgetdFunctionObjectClass   GadgetdFunctionObjectClass;
 
@@ -38,6 +40,8 @@ struct _GadgetdFunctionObject
 	gchar *gadget_name;
 	gchar *instance;
 	gchar *str_type;
+
+	FunctionSerialAttrs *f_serial_attrs_iface;
 };
 
 struct _GadgetdFunctionObjectClass
@@ -69,6 +73,9 @@ gadgetd_function_object_finalize(GObject *object)
 	g_free(function_object->gadget_name);
 	g_free(function_object->instance);
 	g_free(function_object->str_type);
+
+	if (function_object->f_serial_attrs_iface != NULL)
+		g_object_unref (function_object->f_serial_attrs_iface);
 
 	if (G_OBJECT_CLASS(gadgetd_function_object_parent_class)->finalize != NULL)
 		G_OBJECT_CLASS(gadgetd_function_object_parent_class)->finalize(object);
@@ -151,11 +158,45 @@ gadgetd_function_object_set_property(GObject            *object,
  * @brief gadgetd function object init
  * @param[in] object GadgetdFunctionObject
  */
-
 static void
 gadgetd_function_object_init(GadgetdFunctionObject *object)
 {
 	/*nop*/
+}
+
+/**
+ * @brief add interface
+ * @param[in] type usbg_function_type
+ * @param[in] function_object GadgetdFunctionObject
+ */
+static void
+gadgetd_function_object_add_interface(usbg_function_type type, GadgetdFunctionObject *function_object)
+{
+	switch (type) {
+	case F_SERIAL:
+	case F_ACM:
+	case F_OBEX:
+		function_object->f_serial_attrs_iface = function_serial_attrs_new(function_object);
+
+		get_iface(G_OBJECT(function_object),FUNCTION_TYPE_SERIAL_ATTRS,
+			  &function_object->f_serial_attrs_iface);
+		break;
+	case F_ECM:
+	case F_SUBSET:
+	case F_NCM:
+	case F_EEM:
+	case F_RNDIS:
+		ERROR("Function interface not implemented");
+		break;
+	case F_PHONET:
+		ERROR("Function interface not implemented");
+		break;
+	case F_FFS:
+		ERROR("Function interface not implemented");
+		break;
+	default:
+		ERROR("Unsupported function type\n");
+	}
 }
 
 /**
@@ -178,6 +219,8 @@ gadgetd_function_object_constructed(GObject *object)
 	if (!get_function_type(function_object->str_type, &type))
 		ERROR("Invalid function type");
 
+	gadgetd_function_object_add_interface(type, function_object);
+
 	if (path != NULL && g_variant_is_object_path(path) && function_object != NULL)
 		g_dbus_object_skeleton_set_object_path(G_DBUS_OBJECT_SKELETON(function_object), path);
 	else
@@ -185,7 +228,6 @@ gadgetd_function_object_constructed(GObject *object)
 
 	if (G_OBJECT_CLASS(gadgetd_function_object_parent_class)->constructed != NULL)
 		G_OBJECT_CLASS(gadgetd_function_object_parent_class)->constructed(object);
-
 }
 
 /**

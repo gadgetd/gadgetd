@@ -48,6 +48,9 @@
        <arg type="o" name="function_path" direction="out"/>
    </method>
   </interface>
+  <interface name="org.usb.device.Function.SerialAttrs">
+       <property type="i" name="port_num" access="read"/>
+  </interface>
   <interface name="org.usb.device.Gadget.ConfigManager">
    <method name="CreateConfig">
        <arg type="i" name="config_id" direction="in"/>
