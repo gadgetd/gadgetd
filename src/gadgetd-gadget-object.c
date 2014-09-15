@@ -174,6 +174,9 @@ gadgetd_gadget_object_constructed(GObject *object)
 {
 	GadgetdGadgetObject *gadget_object = GADGETD_GADGET_OBJECT(object);
 	gchar *path;
+	GadgetDaemon *daemon;
+
+	daemon = gadgetd_gadget_object_get_daemon(gadget_object);
 
 	path = g_strdup_printf("%s/%s", gadgetd_path, gadget_object->gadget_name);
 
@@ -190,7 +193,8 @@ gadgetd_gadget_object_constructed(GObject *object)
 		   GADGET_TYPE_DESCRIPTORS,
 		   &gadget_object->g_descriptors_iface);
 
-	gadget_object->g_func_manager_iface = gadget_function_manager_new(gadget_object->gadget_name);
+	gadget_object->g_func_manager_iface = gadget_function_manager_new(daemon,
+									  gadget_object->gadget_name);
 
 	get_iface (gadget_object,
 		   GADGET_TYPE_FUNCTION_MANAGER,

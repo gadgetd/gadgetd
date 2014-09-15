@@ -25,6 +25,7 @@
 #include <gadget-daemon.h>
 #include "gadgetd-gdbus-codegen.h"
 #include <gadget-function-manager.h>
+#include <gadgetd-function-object.h>
 
 typedef struct _GadgetFunctionManagerClass   GadgetFunctionManagerClass;
 
@@ -33,6 +34,7 @@ static const char func_manager_iface[] = "org.usb.device.Gadget.FunctionManager"
 struct _GadgetFunctionManager
 {
 	GadgetdGadgetFunctionManagerSkeleton parent_instance;
+	GadgetDaemon *daemon;
 
 	gchar *gadget_name;
 };
@@ -45,6 +47,7 @@ struct _GadgetFunctionManagerClass
 enum
 {
 	PROP_0,
+	PROP_DAEMON,
 	PROP_GADGET_NAME
 } prop_func_manager;
 
@@ -104,6 +107,10 @@ gadget_function_manager_set_property(GObject            *object,
 	GadgetFunctionManager *fun_manager = GADGET_FUNCTION_MANAGER(object);
 
 	switch(property_id) {
+	case PROP_DAEMON:
+		g_assert(fun_manager->daemon == NULL);
+		fun_manager->daemon = g_value_get_object(value);
+		break;
 	case PROP_GADGET_NAME:
 		g_assert(fun_manager->gadget_name == NULL);
 		fun_manager->gadget_name = g_value_dup_string(value);
@@ -158,6 +165,17 @@ gadget_function_manager_class_init(GadgetFunctionManagerClass *klass)
                                                        G_PARAM_READABLE |
                                                        G_PARAM_WRITABLE |
                                                        G_PARAM_CONSTRUCT_ONLY));
+
+	g_object_class_install_property(gobject_class,
+                                   PROP_DAEMON,
+                                   g_param_spec_object("daemon",
+                                                        "Daemon",
+                                                        "daemon for the object",
+                                                        GADGET_TYPE_DAEMON,
+                                                        G_PARAM_READABLE |
+                                                        G_PARAM_WRITABLE |
+                                                        G_PARAM_CONSTRUCT_ONLY |
+                                                        G_PARAM_STATIC_STRINGS));
 }
 
 /**
@@ -167,15 +185,16 @@ gadget_function_manager_class_init(GadgetFunctionManagerClass *klass)
  * @return GadgetFunctionManager object neet to be free.
  */
 GadgetFunctionManager *
-gadget_function_manager_new(const gchar *gadget_name)
+gadget_function_manager_new(GadgetDaemon *daemon, const gchar *gadget_name)
 {
 	g_return_val_if_fail(gadget_name != NULL, NULL);
 
 	GadgetFunctionManager *object;
 
 	object = g_object_new(GADGET_TYPE_FUNCTION_MANAGER,
-			       "gadget_name", gadget_name,
-			        NULL);
+			     "daemon", daemon,
+			     "gadget_name", gadget_name,
+			      NULL);
 
 	return object;
 }
@@ -218,6 +237,18 @@ get_function_type(const gchar *_str_type, usbg_function_type *_type)
 }
 
 /**
+ * @brief Gets the daemon used by @function manager
+ * @param[in] function_manager GadgetManager
+ * @return GadgetDaemon object, dont free used by @manager
+ */
+GadgetDaemon *
+gadget_function_manager_get_daemon(GadgetFunctionManager *function_manager)
+{
+	g_return_val_if_fail(GADGET_IS_FUNCTION_MANAGER(function_manager), NULL);
+	return function_manager->daemon;
+}
+
+/**
  * @brief Create function handler
  * @param[in] object
  * @param[in] invocation
@@ -238,6 +269,10 @@ handle_create_function(GadgetdGadgetFunctionManager	*object,
 	usbg_function *f;
 	const gchar *msg = NULL;
 	GadgetFunctionManager *func_manager = GADGET_FUNCTION_MANAGER(object);
+	GadgetdFunctionObject *function_object;
+	GadgetDaemon *daemon;
+
+	daemon = gadget_function_manager_get_daemon(GADGET_FUNCTION_MANAGER(object));
 
 	/* TODO add create function handler */
 	INFO("handled create function");
@@ -286,7 +321,17 @@ handle_create_function(GadgetdGadgetFunctionManager	*object,
 		goto err;
 	}
 
-	/* TODO add dbus object wit function and interface */
+	function_object = gadgetd_function_object_new(func_manager->gadget_name,
+						instance,
+						_str_type);
+	if (function_object == NULL) {
+		msg = "Unable to create function object";
+		goto err;
+	}
+
+	g_dbus_object_manager_server_export(gadget_daemon_get_object_manager(daemon),
+					    G_DBUS_OBJECT_SKELETON(function_object));
+
 	/* send function path*/
 	g_dbus_method_invocation_return_value(invocation,
 					      g_variant_new("(o)",
