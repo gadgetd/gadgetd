@@ -28,6 +28,7 @@
 #include <gadget-strings.h>
 #include <gadget-descriptors.h>
 #include <gadget-function-manager.h>
+#include <gadget-config-manager.h>
 
 typedef struct _GadgetdGadgetObjectClass   GadgetdGadgetObjectClass;
 
@@ -41,6 +42,7 @@ struct _GadgetdGadgetObject
 	GadgetStrings *g_strings_iface;
 	GadgetDescriptors *g_descriptors_iface;
 	GadgetFunctionManager *g_func_manager_iface;
+	GadgetConfigManager *g_cfg_manager_iface;
 };
 
 struct _GadgetdGadgetObjectClass
@@ -77,6 +79,9 @@ gadgetd_gadget_object_finalize(GObject *object)
 
 	if (gadget_object->g_func_manager_iface != NULL)
 		g_object_unref(gadget_object->g_func_manager_iface);
+
+	if (gadget_object->g_cfg_manager_iface != NULL)
+		g_object_unref(gadget_object->g_cfg_manager_iface);
 
 	if (G_OBJECT_CLASS(gadgetd_gadget_object_parent_class)->finalize != NULL)
 		G_OBJECT_CLASS(gadgetd_gadget_object_parent_class)->finalize(object);
@@ -194,6 +199,13 @@ gadgetd_gadget_object_constructed(GObject *object)
 	get_iface (G_OBJECT(gadget_object),
 		   GADGET_TYPE_FUNCTION_MANAGER,
 		   &gadget_object->g_func_manager_iface);
+
+	gadget_object->g_cfg_manager_iface = gadget_config_manager_new(daemon,
+									 gadget_object->gadget_name);
+
+	get_iface (G_OBJECT(gadget_object),
+		   GADGET_TYPE_CONFIG_MANAGER,
+		   &gadget_object->g_cfg_manager_iface);
 
 	if (path != NULL && g_variant_is_object_path(path) && gadget_object != NULL)
 		g_dbus_object_skeleton_set_object_path(G_DBUS_OBJECT_SKELETON(gadget_object), path);

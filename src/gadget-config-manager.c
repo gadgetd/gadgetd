@@ -1,0 +1,277 @@
+/*
+ * gadget-config-manager.c
+ * Copyright(c) 2014 Samsung Electronics Co., Ltd.
+ *
+ * Licensed under the Apache License, Version 2.0(the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <errno.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+#include <gio/gio.h>
+
+#include <gadget-daemon.h>
+#include "gadgetd-gdbus-codegen.h"
+#include <gadget-config-manager.h>
+
+typedef struct _GadgetConfigManagerClass GadgetConfigManagerClass;
+
+struct _GadgetConfigManager
+{
+	GadgetdGadgetConfigManagerSkeleton parent_instance;
+	GadgetDaemon *daemon;
+
+	gchar *gadget_name;
+};
+
+struct _GadgetConfigManagerClass
+{
+	GadgetdGadgetConfigManagerSkeletonClass parent_class;
+};
+
+enum
+{
+	PROP_0,
+	PROP_DAEMON,
+	PROP_GADGET_NAME
+} prop_cfg_manager;
+
+/**
+ * @brief gadget config manager iface init
+ * @param[in] iface GadgetdGadgetConfigManagerIface
+ */
+static void gadget_config_manager_iface_init(GadgetdGadgetConfigManagerIface *iface);
+
+/**
+ * @brief G_DEFINE_TYPE_WITH_CODE
+ * @details A convenience macro for type implementations. Similar to G_DEFINE_TYPE(), but allows
+ * to insert custom code into the *_get_type() config,
+ * @see G_DEFINE_TYPE()
+ */
+G_DEFINE_TYPE_WITH_CODE(GadgetConfigManager, gadget_config_manager, GADGETD_TYPE_GADGET_CONFIG_MANAGER_SKELETON,
+			 G_IMPLEMENT_INTERFACE(GADGETD_TYPE_GADGET_CONFIG_MANAGER, gadget_config_manager_iface_init));
+
+/**
+ * @brief gadget config manager init
+ * @param[in] config_manager GadgetConfigManager struct
+ */
+static void
+gadget_config_manager_init(GadgetConfigManager *config_manager)
+{
+	/* noop */
+}
+
+/**
+ * @brief gadget config manager finalize
+ * @param[in] object GObject
+ */
+static void
+gadget_config_manager_finalize(GObject *object)
+{
+	GadgetConfigManager *config_manager = GADGET_CONFIG_MANAGER(object);
+
+	g_free(config_manager->gadget_name);
+
+	if (G_OBJECT_CLASS(gadget_config_manager_parent_class)->finalize != NULL)
+		G_OBJECT_CLASS(gadget_config_manager_parent_class)->finalize(object);
+}
+
+/**
+ * @brief gadget config manager Set property
+ * @param[in] object a GObject
+ * @param[in] property_id numeric id under which the property was registered with
+ * @param[in] value a new GValue for the property
+ * @param[in] pspec the GParamSpec structure describing the property
+ */
+static void
+gadget_config_manager_set_property(GObject            *object,
+				   guint               property_id,
+				   const GValue       *value,
+				   GParamSpec         *pspec)
+{
+	GadgetConfigManager *cfg_manager = GADGET_CONFIG_MANAGER(object);
+
+	switch(property_id) {
+	case PROP_DAEMON:
+		g_assert(cfg_manager->daemon == NULL);
+		cfg_manager->daemon = g_value_get_object(value);
+		break;
+	case PROP_GADGET_NAME:
+		g_assert(cfg_manager->gadget_name == NULL);
+		cfg_manager->gadget_name = g_value_dup_string(value);
+		break;
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
+		break;
+	}
+}
+
+/**
+* @brief gadget config manager get property.
+* @details generic Getter for all properties of this type
+* @param[in] object a GObject
+* @param[in] property_id numeric id under which the property was registered with
+* @param[in] value a GValue to return the property value in
+* @param[in] pspec the GParamSpec structure describing the property
+*/
+static void
+gadget_config_manager_get_property(GObject          *object,
+                                   guint             property_id,
+                                   GValue           *value,
+                                   GParamSpec       *pspec)
+{
+	switch(property_id) {
+	default:
+		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
+		break;
+	}
+}
+
+/**
+ * @brief gadget config manager class init
+ * @param[in] klass GadgetConfigManagerClass
+ */
+static void
+gadget_config_manager_class_init(GadgetConfigManagerClass *klass)
+{
+	GObjectClass *gobject_class;
+
+	gobject_class = G_OBJECT_CLASS(klass);
+	gobject_class->finalize     = gadget_config_manager_finalize;
+	gobject_class->set_property = gadget_config_manager_set_property;
+	gobject_class->get_property = gadget_config_manager_get_property;
+
+	g_object_class_install_property(gobject_class,
+                                   PROP_GADGET_NAME,
+                                   g_param_spec_string("gadget_name",
+                                                       "Gadget name",
+                                                       "gadget name",
+                                                       NULL,
+                                                       G_PARAM_READABLE |
+                                                       G_PARAM_WRITABLE |
+                                                       G_PARAM_CONSTRUCT_ONLY));
+
+	g_object_class_install_property(gobject_class,
+                                   PROP_DAEMON,
+                                   g_param_spec_object("daemon",
+                                                        "Daemon",
+                                                        "daemon for the object",
+                                                        GADGET_TYPE_DAEMON,
+                                                        G_PARAM_READABLE |
+                                                        G_PARAM_WRITABLE |
+                                                        G_PARAM_CONSTRUCT_ONLY |
+                                                        G_PARAM_STATIC_STRINGS));
+}
+
+/**
+ * @brief gadget config manager new
+ * @details Create a new GadgetConfigManager instance
+ * @param[in] daemon GadgetDaemon
+ * @return GadgetConfigManager object neet to be free.
+ */
+GadgetConfigManager *
+gadget_config_manager_new(GadgetDaemon *daemon, const gchar *gadget_name)
+{
+	g_return_val_if_fail(gadget_name != NULL, NULL);
+
+	GadgetConfigManager *object;
+
+	object = g_object_new(GADGET_TYPE_CONFIG_MANAGER,
+			     "daemon", daemon,
+			     "gadget_name", gadget_name,
+			      NULL);
+
+	return object;
+}
+
+/**
+ * @brief Gets the daemon used by @config manager
+ * @param[in] config_manager GadgetManager
+ * @return GadgetDaemon object, dont free used by @manager
+ */
+GadgetDaemon *
+gadget_config_manager_get_daemon(GadgetConfigManager *config_manager)
+{
+	g_return_val_if_fail(GADGET_IS_CONFIG_MANAGER(config_manager), NULL);
+	return config_manager->daemon;
+}
+
+/**
+ * @brief Create config handler
+ * @param[in] object
+ * @param[in] invocation
+ * @param[in] instance
+ * @param[in] type
+ * @return true if metod handled
+ */
+static gboolean
+handle_create_config(GadgetdGadgetConfigManager		*object,
+		     GDBusMethodInvocation		*invocation,
+		     gint config_id, const gchar 	*config_label)
+{
+	/* TODO add create config handler */
+	INFO("handled create config");
+
+	return TRUE;
+}
+
+/**
+ * @brief remove config handler
+ * @param[in] object
+ * @param[in] invocation
+ * @param[in] config_path
+ * @return true if metod handled
+ */
+static gboolean
+handle_remove_config(GadgetdGadgetConfigManager		*object,
+		     GDBusMethodInvocation		*invocation,
+		     const gchar			*config_path)
+{
+	/* TODO add remove config handler */
+	INFO("remove config handler");
+
+	return TRUE;
+}
+
+/**
+ * @brief find config by name handler
+ * @param[in] object
+ * @param[in] invocation
+ * @param[in] config_name
+ * @return true if metod handled
+ */
+static gboolean
+handle_find_config_by_id(GadgetdGadgetConfigManager	*object,
+			 GDBusMethodInvocation		*invocation,
+			 gint				config_id)
+{
+	/* TODO add find config by name handler*/
+	INFO("find config by name handler");
+
+	return TRUE;
+}
+
+/**
+ * @brief gadget config manager iface init
+ * @param[in] iface GadgetdGadgetConfigManagerIface
+ */
+static void
+gadget_config_manager_iface_init(GadgetdGadgetConfigManagerIface *iface)
+{
+	iface->handle_create_config = handle_create_config;
+	iface->handle_remove_config = handle_remove_config;
+	iface->handle_find_config_by_id = handle_find_config_by_id;
+}
+
