@@ -54,6 +54,13 @@ extern struct gd_context ctx;
 void get_iface (GObject *object, GType skeleton, gpointer pointer_to_iface);
 
 /**
+ * @brief get function type
+ * @param[in] _str_type
+ * @param[out] _type
+ */
+gboolean get_function_type(const gchar *_str_type, usbg_function_type *_type);
+
+/**
  * @brief Translate errno into gadgetd error code
  **/
 int gd_translate_error(int error);

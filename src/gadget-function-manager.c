@@ -200,43 +200,6 @@ gadget_function_manager_new(GadgetDaemon *daemon, const gchar *gadget_name)
 }
 
 /**
- * @brief get function type
- * @param[in] _str_type
- * @param[out] _type
- */
-static gboolean
-get_function_type(const gchar *_str_type, usbg_function_type *_type)
-{
-	int i;
-
-	static const struct _f_type
-	{
-		gchar *name;
-		usbg_function_type type;
-	} type[] = {
-		{.name = "gser",  .type = F_SERIAL},
-		{.name = "acm",   .type = F_ACM},
-		{.name = "obex",  .type = F_OBEX},
-		{.name = "geth",  .type = F_SUBSET},
-		{.name = "ecm",   .type = F_ECM},
-		{.name = "ncm",   .type = F_NCM},
-		{.name = "eem",   .type = F_EEM},
-		{.name = "rndis", .type = F_RNDIS},
-		{.name = "phonet",.type = F_PHONET},
-		{.name = "ffs",   .type = F_FFS}
-	};
-
-	for (i=0; i < G_N_ELEMENTS(type); i++) {
-		if (g_strcmp0(type[i].name, _str_type) == 0) {
-			*_type = type[i].type;
-			return TRUE;
-		}
-	}
-
-	return FALSE;
-}
-
-/**
  * @brief Gets the daemon used by @function manager
  * @param[in] function_manager GadgetManager
  * @return GadgetDaemon object, dont free used by @manager
