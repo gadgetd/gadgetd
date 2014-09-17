@@ -285,8 +285,7 @@ handle_create_function(GadgetdGadgetFunctionManager	*object,
 	}
 
 	function_object = gadgetd_function_object_new(func_manager->gadget_name,
-						instance,
-						_str_type);
+						instance, _str_type, f);
 	if (function_object == NULL) {
 		msg = "Unable to create function object";
 		goto err;

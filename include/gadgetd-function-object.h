@@ -20,6 +20,7 @@
 
 #include <gadget-daemon.h>
 #include "gadget-manager.h"
+#include <usbg/usbg.h>
 
 G_BEGIN_DECLS
 
@@ -38,7 +39,8 @@ GadgetdFunctionObject *gadgetd_function_object_new      (const gchar *gadget_nam
 							   - Userspace functions implemented
 							   using FunctitonFS (ffs.sdb, ffs.mtp)
 							*/
-							const gchar *_str_type);
+							const gchar *_str_type, usbg_function *f;);
+usbg_function *gadgetd_function_object_get_function(GadgetdFunctionObject *function_object);
 
 G_END_DECLS
 

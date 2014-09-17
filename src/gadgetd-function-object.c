@@ -33,6 +33,8 @@ struct _GadgetdFunctionObject
 {
 	GadgetdObjectSkeleton parent_instance;
 
+	usbg_function *f;
+
 	gchar *gadget_name;
 	gchar *instance;
 	gchar *str_type;
@@ -51,6 +53,7 @@ enum
 	PROP_0,
 	PROP_FUNC_OBJ_INSTANCE,
 	PROP_FUNC_OBJ_TYPE,
+	PROP_FUNC_PTR,
 	PROP_GADGET_NAME
 } prop_func_obj;
 
@@ -69,6 +72,18 @@ gadgetd_function_object_finalize(GObject *object)
 
 	if (G_OBJECT_CLASS(gadgetd_function_object_parent_class)->finalize != NULL)
 		G_OBJECT_CLASS(gadgetd_function_object_parent_class)->finalize(object);
+}
+
+/**
+ * @brief Get function
+ * @param[in] function_object GadgetdFunctionObject
+ * @return str_type
+ */
+usbg_function *
+gadgetd_function_object_get_function(GadgetdFunctionObject *function_object)
+{
+	g_return_val_if_fail(GADGETD_IS_FUNCTION_OBJECT(function_object), NULL);
+	return function_object->f;
 }
 
 /**
@@ -118,6 +133,10 @@ gadgetd_function_object_set_property(GObject            *object,
 		g_assert(function_object->str_type == NULL);
 		function_object->str_type = g_value_dup_string(value);
 		break;
+	case PROP_FUNC_PTR:
+		g_assert(function_object->f == NULL);
+		function_object->f = g_value_get_pointer(value);
+		break;
 	case PROP_GADGET_NAME:
 		g_assert(function_object->gadget_name == NULL);
 		function_object->gadget_name = g_value_dup_string(value);
@@ -148,12 +167,16 @@ gadgetd_function_object_constructed(GObject *object)
 {
 	GadgetdFunctionObject *function_object = GADGETD_FUNCTION_OBJECT(object);
 	gchar _cleanup_g_free_ *path = NULL;
+	usbg_function_type type;
 
 	path = g_strdup_printf("%s/%s/%s/%s",
 				gadgetd_path,
 				function_object->gadget_name,
 				function_object->str_type,
 				function_object->instance);
+
+	if (!get_function_type(function_object->str_type, &type))
+		ERROR("Invalid function type");
 
 	if (path != NULL && g_variant_is_object_path(path) && function_object != NULL)
 		g_dbus_object_skeleton_set_object_path(G_DBUS_OBJECT_SKELETON(function_object), path);
@@ -199,6 +222,14 @@ gadgetd_function_object_class_init(GadgetdFunctionObjectClass *klass)
                                                        G_PARAM_WRITABLE |
                                                        G_PARAM_CONSTRUCT_ONLY));
 	g_object_class_install_property(gobject_class,
+                                   PROP_FUNC_PTR,
+                                   g_param_spec_pointer("function-pointer",
+                                                       "function-pointer",
+                                                       "Pointer to function",
+                                                       G_PARAM_READABLE |
+                                                       G_PARAM_WRITABLE |
+                                                       G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property(gobject_class,
                                    PROP_GADGET_NAME,
                                    g_param_spec_string("gadget_name",
                                                        "Gadget name",
@@ -216,17 +247,19 @@ gadgetd_function_object_class_init(GadgetdFunctionObjectClass *klass)
  */
 GadgetdFunctionObject *
 gadgetd_function_object_new(const gchar *gadget_name, const gchar *instance,
-			    const gchar *str_type)
+			    const gchar *str_type, usbg_function *f)
 {
 	g_return_val_if_fail(gadget_name != NULL, NULL);
 	g_return_val_if_fail(instance    != NULL, NULL);
 	g_return_val_if_fail(str_type    != NULL, NULL);
+	g_return_val_if_fail(f           != NULL, NULL);
 
 	GadgetdFunctionObject *object;
 	object = g_object_new(GADGETD_TYPE_FUNCTION_OBJECT,
-			     "gadget_name", gadget_name,
-			     "instance",    instance,
-			     "str_type",    str_type,
+			     "gadget_name",      gadget_name,
+			     "instance",         instance,
+			     "str_type",         str_type,
+			     "function-pointer", f,
 			      NULL);
 
 	return object;
