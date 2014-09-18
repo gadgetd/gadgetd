@@ -43,6 +43,7 @@ IF(BUILD_EXECUTABLE)
 		src/gadget-config-manager.c
 		src/gadgetd-config-object.c
 		src/gadgetd-core.c
+		src/dbus-config-ifaces/gadget-config.c
 	)
 
 	SET(FFS-DAEMON-SRC

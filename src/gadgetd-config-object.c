@@ -26,6 +26,7 @@
 #include <gadgetd-gdbus-codegen.h>
 #include <gadgetd-common.h>
 #include <gadget-config-manager.h>
+#include <dbus-config-ifaces/gadget-config.h>
 
 typedef struct _GadgetdConfigObjectClass   GadgetdConfigObjectClass;
 
@@ -38,6 +39,7 @@ struct _GadgetdConfigObject
 	gchar *config_label;
 
 	usbg_config *cfg;
+	GadgetConfig *gadget_cfg_iface;
 };
 
 struct _GadgetdConfigObjectClass
@@ -169,6 +171,10 @@ gadgetd_config_object_constructed(GObject *object)
 				gadgetd_path,
 				config_object->gadget_name,
 				config_object->config_id);
+
+	config_object->gadget_cfg_iface = gadget_config_new(config_object->cfg);
+
+	get_iface(G_OBJECT(config_object),GADGETD_TYPE_CONFIG_OBJECT, &config_object->gadget_cfg_iface);
 
 	if (path != NULL && g_variant_is_object_path(path) && config_object != NULL)
 		g_dbus_object_skeleton_set_object_path(G_DBUS_OBJECT_SKELETON(config_object), path);
