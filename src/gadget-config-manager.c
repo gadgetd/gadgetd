@@ -28,6 +28,8 @@
 
 typedef struct _GadgetConfigManagerClass GadgetConfigManagerClass;
 
+static const char cfg_manager_iface[] = "org.usb.device.Gadget.ConfigManager";
+
 struct _GadgetConfigManager
 {
 	GadgetdGadgetConfigManagerSkeleton parent_instance;
@@ -217,14 +219,59 @@ gadget_config_manager_get_daemon(GadgetConfigManager *config_manager)
  * @return true if metod handled
  */
 static gboolean
-handle_create_config(GadgetdGadgetConfigManager		*object,
-		     GDBusMethodInvocation		*invocation,
-		     gint config_id, const gchar 	*config_label)
+handle_create_config(GadgetdGadgetConfigManager  *object,
+		     GDBusMethodInvocation       *invocation,
+		     gint config_id, const gchar *config_label)
 {
-	/* TODO add create config handler */
+	usbg_gadget *g;
+	gchar _cleanup_g_free_ *config_path = NULL;
+	const gchar *msg = NULL;
+	GadgetConfigManager *config_manager = GADGET_CONFIG_MANAGER(object);
+	gint usbg_ret = USBG_SUCCESS;
+	usbg_config *c;
+
 	INFO("handled create config");
 
+	config_path = g_strdup_printf("%s/%s/Config/%d",
+					gadgetd_path,
+					config_manager->gadget_name,
+					config_id);
+
+	if (config_path == NULL || config_label == NULL ||
+			!g_variant_is_object_path(config_path)) {
+		msg = "Invalid config id";
+		goto err;
+	}
+
+	g = usbg_get_gadget(ctx.state, config_manager->gadget_name);
+	if (g == NULL) {
+		msg = "Cant get a gadget device by name";
+		goto err;
+	}
+
+	usbg_ret = usbg_create_config(g, config_id, config_label, NULL, NULL, &c);
+	if (usbg_ret != USBG_SUCCESS) {
+		ERROR("Error on config create");
+		ERROR("Error: %s: %s", usbg_error_name(usbg_ret),
+			usbg_strerror(usbg_ret));
+		msg = usbg_error_name(usbg_ret);
+		goto err;
+	}
+
+	/* TODO add dbus object */
+
+	/* send function path*/
+	g_dbus_method_invocation_return_value(invocation,
+					      g_variant_new("(o)",
+					      config_path));
+
 	return TRUE;
+
+err:
+	g_dbus_method_invocation_return_dbus_error(invocation,
+			cfg_manager_iface,
+			msg);
+	return FALSE;
 }
 
 /**
