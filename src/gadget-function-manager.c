@@ -253,7 +253,7 @@ handle_create_function(GadgetdGadgetFunctionManager	*object,
 		goto err;
 	}
 
-	function_path = g_strdup_printf("%s/%s/%s/%s",
+	function_path = g_strdup_printf("%s/%s/Function/%s/%s",
 					gadgetd_path,
 					func_manager->gadget_name,
 					_str_type,

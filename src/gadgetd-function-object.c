@@ -210,7 +210,7 @@ gadgetd_function_object_constructed(GObject *object)
 	gchar _cleanup_g_free_ *path = NULL;
 	usbg_function_type type;
 
-	path = g_strdup_printf("%s/%s/%s/%s",
+	path = g_strdup_printf("%s/%s/Function/%s/%s",
 				gadgetd_path,
 				function_object->gadget_name,
 				function_object->str_type,
