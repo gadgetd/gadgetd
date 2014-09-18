@@ -264,8 +264,7 @@ handle_create_config(GadgetdGadgetConfigManager  *object,
 	}
 
 	config_object = gadgetd_config_object_new(config_manager->gadget_name,
-						  config_id,
-						  config_label);
+						  config_id, config_label, c);
 	if (config_object == NULL) {
 		msg = "Unable to create function object";
 		goto err;

@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <glib-object.h>
+#include <usbg/usbg.h>
 
 #include <gio/gio.h>
 
@@ -35,6 +36,8 @@ struct _GadgetdConfigObject
 	gchar *gadget_name;
 	gint  config_id;
 	gchar *config_label;
+
+	usbg_config *cfg;
 };
 
 struct _GadgetdConfigObjectClass
@@ -49,6 +52,7 @@ enum
 	PROP_0,
 	PROP_CFG_OBJ_LABEL,
 	PROP_CFG_OBJ_ID,
+	PROP_CFG_PTR,
 	PROP_GADGET_NAME
 } prop_cfg_obj;
 
@@ -67,6 +71,19 @@ gadgetd_config_object_finalize(GObject *object)
 	if (G_OBJECT_CLASS(gadgetd_config_object_parent_class)->finalize != NULL)
 		G_OBJECT_CLASS(gadgetd_config_object_parent_class)->finalize(object);
 }
+
+/**
+ * @brief Get config
+ * @param[in] config_object GadgetdConfigObject
+ * @return cfg usbg_config
+ */
+usbg_config *
+gadgetd_config_object_get_config(GadgetdConfigObject *config_object)
+{
+	g_return_val_if_fail(GADGETD_IS_CONFIG_OBJECT(config_object), NULL);
+	return config_object->cfg;
+}
+
 
 /**
  * @brief gadgetd config object get property.
@@ -113,6 +130,10 @@ gadgetd_config_object_set_property(GObject            *object,
 		break;
 	case PROP_CFG_OBJ_ID:
 		config_object->config_id = g_value_get_int(value);
+		break;
+	case PROP_CFG_PTR:
+		g_assert(config_object->cfg == NULL);
+		config_object->cfg = g_value_get_pointer(value);
 		break;
 	case PROP_GADGET_NAME:
 		g_assert(config_object->gadget_name == NULL);
@@ -194,6 +215,14 @@ gadgetd_config_object_class_init(GadgetdConfigObjectClass *klass)
                                                        G_PARAM_WRITABLE |
                                                        G_PARAM_CONSTRUCT_ONLY));
 	g_object_class_install_property(gobject_class,
+                                   PROP_CFG_PTR,
+                                   g_param_spec_pointer("config-pointer",
+                                                       "config-pointer",
+                                                       "Pointer to config",
+                                                       G_PARAM_READABLE |
+                                                       G_PARAM_WRITABLE |
+                                                       G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property(gobject_class,
                                    PROP_GADGET_NAME,
                                    g_param_spec_string("gadget_name",
                                                        "Gadget name",
@@ -210,7 +239,8 @@ gadgetd_config_object_class_init(GadgetdConfigObjectClass *klass)
  * @return GadgetdConfigObject object
  */
 GadgetdConfigObject *
-gadgetd_config_object_new(const gchar *gadget_name, gint config_id, const gchar *config_label)
+gadgetd_config_object_new(const gchar *gadget_name, gint config_id, const gchar *config_label,
+			  usbg_config *cfg)
 {
 	g_return_val_if_fail(gadget_name  != NULL, NULL);
 	g_return_val_if_fail(config_id    != FALSE, NULL);
@@ -221,6 +251,7 @@ gadgetd_config_object_new(const gchar *gadget_name, gint config_id, const gchar 
 			     "gadget_name",  gadget_name,
 			     "config_id",    config_id,
 			     "config_label", config_label,
+			     "config-pointer", cfg,
 			      NULL);
 
 	return object;

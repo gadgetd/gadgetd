@@ -32,8 +32,8 @@ typedef struct _GadgetdConfigObject GadgetdConfigObject;
 
 GType                gadgetd_config_object_get_type (void) G_GNUC_CONST;
 GadgetdConfigObject *gadgetd_config_object_new(const gchar *gadget_name, gint config_id,
-					       const gchar *config_label);
-
+					       const gchar *config_label, usbg_config *cfg);
+usbg_config *gadgetd_config_object_get_config(GadgetdConfigObject *config_object);
 G_END_DECLS
 
 #endif /* GADGETD_CONFIG_OBJECT_H */
