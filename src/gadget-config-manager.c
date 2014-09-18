@@ -25,6 +25,7 @@
 #include <gadget-daemon.h>
 #include "gadgetd-gdbus-codegen.h"
 #include <gadget-config-manager.h>
+#include <gadgetd-config-object.h>
 
 typedef struct _GadgetConfigManagerClass GadgetConfigManagerClass;
 
@@ -229,8 +230,12 @@ handle_create_config(GadgetdGadgetConfigManager  *object,
 	GadgetConfigManager *config_manager = GADGET_CONFIG_MANAGER(object);
 	gint usbg_ret = USBG_SUCCESS;
 	usbg_config *c;
+	GadgetDaemon *daemon;
+	GadgetdConfigObject *config_object;
 
 	INFO("handled create config");
+
+	daemon = gadget_config_manager_get_daemon(GADGET_CONFIG_MANAGER(object));
 
 	config_path = g_strdup_printf("%s/%s/Config/%d",
 					gadgetd_path,
@@ -258,7 +263,16 @@ handle_create_config(GadgetdGadgetConfigManager  *object,
 		goto err;
 	}
 
-	/* TODO add dbus object */
+	config_object = gadgetd_config_object_new(config_manager->gadget_name,
+						  config_id,
+						  config_label);
+	if (config_object == NULL) {
+		msg = "Unable to create function object";
+		goto err;
+	}
+
+	g_dbus_object_manager_server_export(gadget_daemon_get_object_manager(daemon),
+					    G_DBUS_OBJECT_SKELETON(config_object));
 
 	/* send function path*/
 	g_dbus_method_invocation_return_value(invocation,
