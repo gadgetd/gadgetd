@@ -45,6 +45,7 @@ IF(BUILD_EXECUTABLE)
 		src/gadgetd-core.c
 		src/dbus-config-ifaces/gadget-config.c
 		src/gadgetd-functions.c
+		src/gadgetd-udc-object.c
 	)
 
 	SET(FFS-DAEMON-SRC

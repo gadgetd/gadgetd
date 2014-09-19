@@ -27,6 +27,7 @@
 #include <gadgetd-gdbus-codegen.h>
 #include <gadget-daemon.h>
 #include <gadget-manager.h>
+#include <gadgetd-udc-object.h>
 
 #include <string.h>
 #ifdef G_OS_UNIX
@@ -187,6 +188,8 @@ gadget_daemon_constructed(GObject *object)
 	GadgetDaemon *daemon = GADGET_DAEMON(object);
 	GadgetdGadgetManager *gadget_manager;
 	GDBusConnection *connection;
+	GadgetdUdcObject *udc_object;
+	GList *l;
 
 	daemon->object_manager = g_dbus_object_manager_server_new(gadgetd_path);
 
@@ -201,6 +204,13 @@ gadget_daemon_constructed(GObject *object)
 					 connection,
 					 gadgetd_path,
 					 NULL);
+
+	/* create dbus udc objects */
+	for (l = gd_udcs; l != NULL; l = l->next) {
+		udc_object = gadgetd_udc_object_new((usbg_udc *)(l->data));
+		g_dbus_object_manager_server_export(gadget_daemon_get_object_manager(daemon),
+					    G_DBUS_OBJECT_SKELETON(udc_object));
+	}
 
 	if (G_OBJECT_CLASS(gadget_daemon_parent_class)->constructed != NULL)
 		G_OBJECT_CLASS(gadget_daemon_parent_class)->constructed(object);
