@@ -38,6 +38,7 @@ typedef enum  {
 	GD_ERROR_INVALID_PARAM = -8,
 	GD_ERROR_PATH_TOO_LONG = -9,
 	GD_ERROR_NOT_DEFINED = -10,
+	GD_ERROR_EXIST = -11,
 	GD_ERROR_OTHER_ERROR = -99
 } gd_error;
 
