@@ -38,6 +38,7 @@ struct _GadgetdGadgetObject
 	GadgetDaemon *daemon;
 
 	gchar *gadget_name;
+	struct gd_gadget *gadget;
 
 	GadgetStrings *g_strings_iface;
 	GadgetDescriptors *g_descriptors_iface;
@@ -57,7 +58,8 @@ enum
 {
 	PROPERTY,
 	PROPERTY_DAEMON,
-	PROPERTY_GADGET_NAME
+	PROPERTY_GADGET_NAME,
+	PROPERTY_GADGET_PTR
 };
 
 /**
@@ -70,6 +72,8 @@ gadgetd_gadget_object_finalize(GObject *object)
 	GadgetdGadgetObject *gadget_object = GADGETD_GADGET_OBJECT(object);
 
 	g_free(gadget_object->gadget_name);
+
+	g_free(gadget_object->gadget);
 
 	if (gadget_object->g_strings_iface != NULL)
 		g_object_unref (gadget_object->g_strings_iface);
@@ -137,6 +141,11 @@ gadgetd_gadget_object_set_property(GObject            *object,
 		g_assert(gadget_object->gadget_name == NULL);
 		gadget_object->gadget_name = g_value_dup_string(value);
 		break;
+	case PROPERTY_GADGET_PTR:
+		g_assert(gadget_object->gadget == NULL);
+		gadget_object->gadget = g_value_get_pointer(value);
+		break;
+
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
 		break;
@@ -253,6 +262,15 @@ gadgetd_gadget_object_class_init(GadgetdGadgetObjectClass *klass)
                                                        G_PARAM_READABLE |
                                                        G_PARAM_WRITABLE |
                                                        G_PARAM_CONSTRUCT_ONLY));
+
+	g_object_class_install_property(gobject_class,
+					PROPERTY_GADGET_PTR,
+					g_param_spec_pointer("gd_gadget",
+							    "Gadget ptr",
+							    "gadget ptr",
+							    G_PARAM_READABLE |
+							    G_PARAM_WRITABLE |
+							    G_PARAM_CONSTRUCT_ONLY));
 }
 
 /**
@@ -262,7 +280,8 @@ gadgetd_gadget_object_class_init(GadgetdGadgetObjectClass *klass)
  * @return GadgetdGadgetObject object
  */
 GadgetdGadgetObject *
-gadgetd_gadget_object_new(GadgetDaemon *daemon, const gchar *gadget_name)
+gadgetd_gadget_object_new(GadgetDaemon *daemon, const gchar *gadget_name,
+			  struct gd_gadget *g)
 {
 	g_return_val_if_fail(GADGET_IS_DAEMON(daemon), NULL);
 	g_return_val_if_fail(gadget_name != NULL, NULL);
@@ -271,6 +290,7 @@ gadgetd_gadget_object_new(GadgetDaemon *daemon, const gchar *gadget_name)
 	object = g_object_new(GADGETD_TYPE_GADGET_OBJECT,
 			     "daemon", daemon,
 			     "gadget_name", gadget_name,
+			      "gd_gadget", g,
 			      NULL);
 
 	return object;

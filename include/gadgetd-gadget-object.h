@@ -20,6 +20,7 @@
 
 #include <gadget-daemon.h>
 #include "gadget-manager.h"
+#include "gadgetd-core.h"
 
 G_BEGIN_DECLS
 
@@ -32,7 +33,8 @@ typedef struct _GadgetdGadgetObject GadgetdGadgetObject;
 
 GType                 gadgetd_gadget_object_get_type   (void) G_GNUC_CONST;
 GadgetdGadgetObject  *gadgetd_gadget_object_new        (GadgetDaemon         *object,
-							const gchar          *gadget_name);
+							const gchar          *gadget_name,
+							struct gd_gadget     *gadget);
 GadgetDaemon         *gadgetd_gadget_object_get_daemon (GadgetdGadgetObject  *object);
 
 G_END_DECLS

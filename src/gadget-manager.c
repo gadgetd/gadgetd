@@ -29,7 +29,7 @@
 #include <usbg/usbg.h>
 #include <gadgetd-common.h>
 #include <gadgetd-gadget-object.h>
-
+#include <gadgetd-core.h>
 
 typedef struct _GadgetManagerClass   GadgetManagerClass;
 
@@ -198,153 +198,6 @@ gadget_manager_get_daemon(GadgetManager *manager)
 }
 
 /**
- * @brief Parse strings
- * @param[in] strings GVariant
- * @return true if parsed
- */
-static gboolean
-strings_set(GVariant *strings, usbg_gadget *g)
-{
-	GVariant *value;
-	GVariantIter *iter;
-	const gchar *key;
-	gboolean found = TRUE;
-	int usbg_ret;
-	int i;
-
-	static const struct {
-		char *name;
-		int (*s_func)(usbg_gadget *, int, const char *str);
-	} strs[] = {
-		{ "serialnumber", usbg_set_gadget_serial_number       },
-		{ "manufacturer", usbg_set_gadget_manufacturer        },
-		{ "product",      usbg_set_gadget_product             }
-	};
-
-	g_variant_get(strings, "a{sv}", &iter);
-
-	if (g_variant_iter_n_children(iter) == 0) {
-		/* Ensure that at least one string is set when creating gadget.
-		 *
-		 * Kernel driver provides set of strings (manufacturer, serial,
-		 * product) to USB host only if at least one of them has been
-		 * set. In gadgetd we follow the most popular convention that
-		 * each USB device should provide strings in English (US).
-		 *
-		 * If user didn't provide value for any of strings we create
-		 * empty one. This is information for driver that this gadget
-		 * provides strings in English and all three are empty.
-		 */
-		usbg_ret = strs[0].s_func(g, LANG_US_ENG, "");
-		if (usbg_ret != USBG_SUCCESS) {
-			ERROR("Unable to set string '%s': %s", key, usbg_error_name(usbg_ret));
-			goto out;
-		}
-	}
-
-	while (g_variant_iter_next(iter, "{&sv}", &key, &value)) {
-		for (found = FALSE, i = 0; i < G_N_ELEMENTS(strs); i++) {
-			if (g_strcmp0(key, strs[i].name) != 0)
-				continue;
-
-			if (!g_variant_is_of_type(value, G_VARIANT_TYPE("s")))
-				goto out;
-
-			/* strings are currently available en_US locale only */
-			usbg_ret = strs[i].s_func(g, LANG_US_ENG, g_variant_get_string(value, NULL));
-			if (usbg_ret != USBG_SUCCESS) {
-				ERROR("Unable to set string '%s': %s", key, usbg_error_name(usbg_ret));
-				goto out;
-			}
-
-			g_variant_unref(value);
-			found = TRUE;
-			break;
-		}
-		if (!found)
-			goto out;
-	}
-
-out:
-	if (!found) {
-		ERROR("Provided string '%s' is invalid", key);
-		g_variant_unref(value);
-	}
-	g_variant_iter_free(iter);
-	return found;
-}
-
-/**
- * @brief parse descriptors
- * @param[in] descriptors
- * @return true if parsed
- */
-static gboolean
-descriptors_set(GVariant *descriptors, usbg_gadget *g)
-{
-	GVariant *value;
-	GVariantIter *iter;
-	const gchar *key;
-	gboolean found = TRUE;
-	int usbg_ret;
-	int i;
-
-	static const struct {
-		char *name;
-		char *type;
-		int (*y_func)(usbg_gadget *,  uint8_t);
-		int (*q_func)(usbg_gadget *, uint16_t);
-	} descs[] = {
-		{ "bcdUSB",          "q", NULL, usbg_set_gadget_device_bcd_usb     },
-		{ "bDeviceClass",    "y", usbg_set_gadget_device_class, NULL       },
-		{ "bDeviceSubClass", "y", usbg_set_gadget_device_subclass, NULL    },
-		{ "bDeviceProtocol", "y", usbg_set_gadget_device_protocol, NULL    },
-		{ "bMaxPacketSize0", "y", usbg_set_gadget_device_max_packet, NULL  },
-		{ "idVendor",        "q", NULL, usbg_set_gadget_vendor_id          },
-		{ "idProduct",       "q", NULL, usbg_set_gadget_product_id         },
-		{ "bcdDevice",       "q", NULL, usbg_set_gadget_device_bcd_device  }
-	};
-
-	g_variant_get(descriptors, "a{sv}", &iter);
-
-	while (g_variant_iter_next(iter, "{&sv}", &key, &value)) {
-		for (found = FALSE, i = 0; i < G_N_ELEMENTS(descs); i++) {
-			if (g_strcmp0(key, descs[i].name) != 0)
-				continue;
-
-			if (!g_variant_is_of_type(value, G_VARIANT_TYPE(descs[i].type)))
-				goto out;
-
-			if (descs[i].type[0] == 'q')
-				usbg_ret = descs[i].q_func(g, g_variant_get_uint16(value));
-			else if (descs[i].type[0] == 'y')
-				usbg_ret = descs[i].y_func(g, g_variant_get_byte(value));
-			else
-				goto out;
-
-			if (usbg_ret != USBG_SUCCESS) {
-				ERROR("Unable to set descriptor '%s': %s", key, usbg_error_name(usbg_ret));
-				goto out;
-			}
-
-			g_variant_unref(value);
-			found = TRUE;
-			break;
-		}
-		if (!found)
-			goto out;
-	}
-
-out:
-	if (!found) {
-		ERROR("Provided descriptor '%s' is invalid", key);
-		g_variant_unref(value);
-	}
-	g_variant_iter_free(iter);
-	return found;
-}
-
-/**
  * @brief Create gadget handler
  * @param[in] object GadgetdGadgetManager object
  * @param[in] invocation
@@ -361,8 +214,7 @@ handle_create_gadget(GadgetdGadgetManager	*object,
 		      GVariant			*strings)
 {
 	gint g_ret = 0;
-	int usbg_ret = USBG_SUCCESS;
-	usbg_gadget *g;
+	struct gd_gadget *g;
 	const char *msg = "Unknown error";
 	_cleanup_g_free_ gchar *path = NULL;
 	GadgetdGadgetObject *gadget_object;
@@ -380,28 +232,21 @@ handle_create_gadget(GadgetdGadgetManager	*object,
 		goto err;
 	}
 
-	/* CREATE GADGET()*/
-	usbg_ret = usbg_create_gadget(ctx.state,
-				   gadget_name,
-				   NULL,
-				   NULL,
-				   &(g));
-
-	if (usbg_ret != USBG_SUCCESS) {
-		msg = usbg_error_name(usbg_ret);
+	/* Allocate the memory for this gadget */
+	g = g_malloc(sizeof(struct gd_gadget));
+	if (!g) {
+		msg = "Out of memory";
 		goto err;
 	}
 
-	/* set strings and descriptors */
-	g_ret = descriptors_set(descriptors, g) && strings_set(strings, g);
-	if (!g_ret) {
-		usbg_rm_gadget(g, USBG_RM_RECURSE);
-		msg = "Invalid strings or descriptors argument";
+	g_ret = gd_create_gadget(gadget_name, descriptors, strings, g, &msg);
+	if (g_ret != GD_SUCCESS) {
+		g_free(g);
 		goto err;
 	}
 
 	/* create dbus gadget object */
-	gadget_object = gadgetd_gadget_object_new(daemon, gadget_name);
+	gadget_object = gadgetd_gadget_object_new(daemon, gadget_name, g);
 	g_dbus_object_manager_server_export(gadget_daemon_get_object_manager(daemon),
 					    G_DBUS_OBJECT_SKELETON(gadget_object));
 
