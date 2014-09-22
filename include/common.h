@@ -36,4 +36,9 @@ static inline void _cleanup_fn_free_(void *p) {
 #define _cleanup_(fn)   __attribute__((cleanup(fn)))
 #define _cleanup_free_  _cleanup_(_cleanup_fn_free_)
 
+#define container_of(ptr, type, field) ({				\
+			const typeof(((type *)0)->field) *member = (ptr); \
+			(type *)( (char *)member - offsetof(type, field) ); \
+		})
+
 #endif /* COMMON_H */
