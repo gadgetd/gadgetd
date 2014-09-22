@@ -60,6 +60,21 @@ gd_unregister_func_t(struct gd_function_type *type)
 	return GD_SUCCESS;
 }
 
+void
+gd_unregister_all_func_t(void)
+{
+	GList *l;
+	struct gd_function_type *t;
+
+	while ((l = g_list_first(func_types)) != NULL) {
+		t = (struct gd_function_type *)l->data;
+		if (t->on_unregister)
+			t->on_unregister(t);
+
+		func_types = g_list_delete_link(func_types, l);
+	}
+}
+
 /* Internal gadgetd API for gadget/config/function management */
 
 static int

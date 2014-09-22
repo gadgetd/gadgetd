@@ -49,5 +49,10 @@ int gd_register_func_t(struct gd_function_type *type);
  */
 int gd_unregister_func_t(struct gd_function_type *type);
 
+/**
+ * @brief Unregister all registered function types;
+ */
+void gd_unregister_all_func_t();
+
 #endif /* GADGETD_CORE_FUNCTION_H */
 
