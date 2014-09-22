@@ -75,6 +75,43 @@ gd_unregister_all_func_t(void)
 	}
 }
 
+static inline void
+gd_gcharpp_cleanup(void *p)
+{
+	g_free(*(gchar**)p);
+}
+
+GArray *
+gd_list_func_types(gboolean zero_terminated)
+{
+	GArray *buf;
+	int n_elem;
+	GList *l;
+	struct gd_function_type *t;
+	gchar *name;
+
+	n_elem = g_list_length(func_types);
+	buf = g_array_sized_new(zero_terminated, TRUE, sizeof(gchar *), n_elem);
+	if (!buf)
+		goto out;
+
+	g_array_set_clear_func(buf, gd_gcharpp_cleanup);
+
+	for (l = g_list_first(func_types); l; l = g_list_next(l)) {
+		t = (struct gd_function_type *)l->data;
+		name = g_strdup(t->name);
+		if (!name)
+			goto error;
+		g_array_append_val(buf, name);
+	}
+
+out:
+	return buf;
+error:
+	g_array_free(buf, TRUE);
+	return NULL;
+}
+
 /* Internal gadgetd API for gadget/config/function management */
 
 static int

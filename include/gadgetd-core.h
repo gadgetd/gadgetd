@@ -56,5 +56,12 @@ int gd_create_gadget(const gchar *name, GVariant *attrs,
 		     GVariant *strings, struct gd_gadget *g,
 		     const gchar **error);
 
+/**
+ * @brief Lists all currently available function types
+ * @param zero_terminated indicates if returned array shou be 0 terminated
+ * @return List of available functions or NULL if error occurred
+ */
+GArray *gd_list_func_types(gboolean zero_terminated);
+
 #endif /* GADGETD_CORE_H */
 
