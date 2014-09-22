@@ -310,10 +310,27 @@ static gboolean
 handle_list_avaliable_functions(GadgetdGadgetManager	*object,
 			        GDBusMethodInvocation	*invocation)
 {
-	/*TODO handle list functions*/
+	GArray *funcs;
+	GVariant *result;
+
 	INFO("list avaliable functions handler");
 
+	funcs = gd_list_func_types(TRUE);
+	if (!funcs)
+		goto error;
+
+	result = g_variant_new("(^as)", (gchar **)funcs->data);
+	g_dbus_method_invocation_return_value(invocation, result);
+
+	g_array_free(funcs, TRUE);
 	return TRUE;
+error:
+        ERROR("Not enought memory");
+	g_dbus_method_invocation_return_dbus_error(invocation, manager_iface,
+						   "GD_ERROR_NO_MEM");
+
+	g_array_free(funcs, TRUE);
+	return FALSE;
 }
 
 /**
