@@ -33,6 +33,9 @@ typedef struct _GadgetdUdcObject GadgetdUdcObject;
 
 GType            gadgetd_udc_object_get_type (void) G_GNUC_CONST;
 GadgetdUdcObject *gadgetd_udc_object_new     (usbg_udc *u);
+usbg_udc         *gadgetd_udc_object_get_udc(GadgetdUdcObject *object);
+gchar            *gadgetd_udc_object_get_enabled_gadget_path(GadgetdUdcObject *object);
+gint              gadgetd_udc_object_set_enabled_gadget_path(GadgetdUdcObject *object, const gchar *path);
 
 G_END_DECLS
 

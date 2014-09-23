@@ -27,6 +27,7 @@
 #include <gadgetd-udc-object.h>
 #include <gadgetd-gdbus-codegen.h>
 #include <gadgetd-common.h>
+#include <gadgetd-udc-iface.h>
 
 typedef struct _GadgetdUdcObjectClass   GadgetdUdcObjectClass;
 
@@ -34,6 +35,7 @@ struct _GadgetdUdcObject
 {
 	GadgetdObjectSkeleton parent_instance;
 
+	gchar *enabled_gadget_path;
 	usbg_udc *u;
 };
 
@@ -98,6 +100,56 @@ gadgetd_udc_object_get_property(GObject *object, guint property_id, GValue *valu
 }
 
 /**
+ * @brief Gets the udc
+ * @param[in] object GadgetdUdcObject
+ * @return usbg_udc
+ */
+usbg_udc *
+gadgetd_udc_object_get_udc(GadgetdUdcObject *object)
+{
+	g_return_val_if_fail(GADGETD_IS_UDC_OBJECT(object), NULL);
+	return object->u;
+}
+
+/**
+ * @brief Gets the enabled gadget path
+ * @param[in] object GadgetdUdcObject
+ * @return enabled gadget path
+ */
+gchar *
+gadgetd_udc_object_get_enabled_gadget_path(GadgetdUdcObject *object)
+{
+	g_return_val_if_fail(GADGETD_IS_UDC_OBJECT(object), NULL);
+	return object->enabled_gadget_path;
+}
+
+/**
+ * @brief Set the enabled gadget path
+ * @param[in] object GadgetdUdcObject
+ * @return enabled gadget path
+ */
+gint
+gadgetd_udc_object_set_enabled_gadget_path(GadgetdUdcObject *object, const gchar *path)
+{
+	g_return_val_if_fail(GADGETD_IS_UDC_OBJECT(object), GD_ERROR_OTHER_ERROR);
+
+	if (object->enabled_gadget_path != NULL) {
+		g_free(object->enabled_gadget_path);
+		object->enabled_gadget_path = NULL;
+	}
+
+	if (path == NULL)
+		return GD_SUCCESS;
+
+	object->enabled_gadget_path = g_strdup(path);
+
+	if (object->enabled_gadget_path == NULL)
+		return GD_ERROR_NO_MEM;
+
+	return GD_SUCCESS;
+}
+
+/**
  * @brief gadgetd udc object init
  * @param[in] object GadgetdUdcObject
  */
@@ -137,11 +189,16 @@ gadgetd_udc_object_constructed(GObject *object)
 	GadgetdUdcObject *udc_object = GADGETD_UDC_OBJECT(object);
 	gchar _cleanup_g_free_ *path = NULL;
 	gchar _cleanup_g_free_ *udc_name = NULL;
+	GadgetdUDCDevice *udc_iface;
 
 	get_udc_name(udc_object, &udc_name);
 
 	if (udc_name != NULL)
 		path = g_strdup_printf("%s/UDC/%s", gadgetd_path, udc_name);
+
+	udc_iface = gadgetd_udc_device_new(udc_object);
+
+	get_iface(G_OBJECT(udc_object),GADGETD_TYPE_UDC_DEVICE, &udc_iface);
 
 	if (path != NULL && g_variant_is_object_path(path) && udc_object != NULL)
 		g_dbus_object_skeleton_set_object_path(G_DBUS_OBJECT_SKELETON(udc_object), path);
@@ -150,6 +207,21 @@ gadgetd_udc_object_constructed(GObject *object)
 
 	if (G_OBJECT_CLASS(gadgetd_udc_object_parent_class)->constructed != NULL)
 		G_OBJECT_CLASS(gadgetd_udc_object_parent_class)->constructed(object);
+}
+
+/**
+ * @brief gadgetd udc object finalize
+ * @param[in] object GObject
+ */
+static void
+gadgetd_udc_object_finalize(GObject *object)
+{
+	GadgetdUdcObject *udc_object = GADGETD_UDC_OBJECT(object);
+
+	g_free(udc_object->enabled_gadget_path);
+
+	if (G_OBJECT_CLASS(gadgetd_udc_object_parent_class)->finalize != NULL)
+		G_OBJECT_CLASS(gadgetd_udc_object_parent_class)->finalize(object);
 }
 
 /**
@@ -165,6 +237,7 @@ gadgetd_udc_object_class_init(GadgetdUdcObjectClass *klass)
 	gobject_class->constructed  = gadgetd_udc_object_constructed;
 	gobject_class->set_property = gadgetd_udc_object_set_property;
 	gobject_class->get_property = gadgetd_udc_object_get_property;
+	gobject_class->finalize     = gadgetd_udc_object_finalize;
 
 	g_object_class_install_property(gobject_class,
                                    PROP_UDC_PTR,

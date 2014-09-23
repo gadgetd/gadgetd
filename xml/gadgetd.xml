@@ -85,6 +85,17 @@
        <property type="y" name="bmAttributes" access="readwrite"/>
        <property type="y" name="bMaxPower" access="readwrite"/>
   </interface>
+  <interface name="org.usb.device.UDC">
+   <method name="EnableGadget">
+       <arg type="o" name="gadget_path" direction="in"/>
+       <arg type="b" name="gadget_enabled" direction="out"/>
+   </method>
+   <method name="DisableGadget">
+       <arg type="b" name="gadget_disabled" direction="out"/>
+   </method>
+       <property type="s" name="name" access="read"/>
+       <property type="s" name="enabled_gadget" access="read"/>
+  </interface>
 </node>
 
 
