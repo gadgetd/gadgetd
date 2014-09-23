@@ -49,6 +49,10 @@ struct gd_context
 
 extern struct gd_context ctx;
 
+/*TODO move to core ? */
+/* list of UDC-s on device */
+extern GList *gd_udcs;
+
 /**
  * @brief Get interface
  **/

@@ -41,6 +41,7 @@
 
 struct gd_config config;
 struct gd_context ctx;
+GList *gd_udcs;
 
 static void
 usage() {
@@ -146,11 +147,17 @@ gd_read_config(int argc, char * const argv[], struct gd_config *pconfig)
 inline static int
 gd_ctx_init(void)
 {
+	usbg_udc *u;
 	int usbg_ret = GD_SUCCESS;
+
 	usbg_ret = usbg_init(config.configfs_mnt, &ctx.state);
 	if (usbg_ret != USBG_SUCCESS) {
 		ERROR("Error: %s: %s", usbg_error_name(usbg_ret),
 		      usbg_strerror(usbg_ret));
+	}
+
+	usbg_for_each_udc(u, ctx.state) {
+		gd_udcs = g_list_append(gd_udcs, u);
 	}
 	return usbg_ret;
 }
