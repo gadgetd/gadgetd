@@ -41,4 +41,6 @@ static inline void _cleanup_fn_free_(void *p) {
 			(type *)( (char *)member - offsetof(type, field) ); \
 		})
 
+#define ARRAY_SIZE(a) (sizeof(a)/sizeof(*a))
+
 #endif /* COMMON_H */
