@@ -37,7 +37,7 @@ struct _GadgetDescriptors
 {
 	GadgetdGadgetDescriptorsSkeleton parent_instance;
 
-	gchar *gadget_name;
+	struct gd_gadget *gadget;
 };
 
 struct _GadgetDescriptorsClass
@@ -48,15 +48,16 @@ struct _GadgetDescriptorsClass
 enum
 {
 	PROP_0,
-	PROP_DESC_BCDUSB,
-	PROP_DESC_BDEVICECLASS,
-	PROP_DESC_BDEVICESUBCLASS,
-	PROP_DESC_BDEVICEPROTOCOL,
-	PROP_DESC_BMAXPACKETSIZE,
-	PROP_DESC_IDVENDOR,
-	PROP_DESC_IDPRODUCT,
-	PROP_DESC_BCDDEVICE,
-	PROP_GADGET_NAME
+	/* We add one to each value because usbg enumerates attributes from 0 */
+	PROP_DESC_BCDUSB = BCD_USB + 1,
+	PROP_DESC_BDEVICECLASS = B_DEVICE_CLASS + 1,
+	PROP_DESC_BDEVICESUBCLASS = B_DEVICE_SUB_CLASS + 1,
+	PROP_DESC_BDEVICEPROTOCOL = B_DEVICE_PROTOCOL + 1,
+	PROP_DESC_BMAXPACKETSIZE = B_MAX_PACKET_SIZE_0 + 1,
+	PROP_DESC_IDVENDOR = ID_VENDOR + 1,
+	PROP_DESC_IDPRODUCT = ID_PRODUCT + 1,
+	PROP_DESC_BCDDEVICE = BCD_DEVICE + 1,
+	PROP_GADGET_PTR
 } prop_descriptors;
 
 /**
@@ -83,67 +84,48 @@ gadget_descriptors_set_property(GObject      *object,
 				 GParamSpec   *pspec)
 {
 	GadgetDescriptors *descriptors = GADGET_DESCRIPTORS(object);
-	guint16 tuint16;
-	guint8 tuint8;
-	usbg_gadget *g = NULL;
+	struct gd_gadget *gadget = descriptors->gadget;
 	gint usbg_ret = USBG_SUCCESS;
+	gint val;
 
-	if (descriptors->gadget_name != NULL)
-		g = usbg_get_gadget(ctx.state, descriptors->gadget_name);
-
-	if (g == NULL && property_id != PROP_GADGET_NAME) {
-		ERROR("Cant get a gadget device by name");
+	if (gadget == NULL && property_id != PROP_GADGET_PTR) {
+		ERROR("Cant get a gadget object");
 		return;
 	}
 
-	switch(property_id) {
+	switch (property_id) {
 	case PROP_DESC_BCDUSB:
-		/* We are not checking range of received *value*
-		   because dbus only allow to send/recive type 'q' value*/
-		tuint16 = g_value_get_uint(value);
-		usbg_ret = usbg_set_gadget_device_bcd_usb(g, (uint16_t)tuint16);
-		break;
-	case PROP_DESC_BDEVICECLASS:
-		tuint8 = g_value_get_uchar(value);
-		usbg_ret = usbg_set_gadget_device_class(g, (uint8_t)tuint8);
-		break;
-	case PROP_DESC_BDEVICESUBCLASS:
-		tuint8 = g_value_get_uchar(value);
-		usbg_ret = usbg_set_gadget_device_subclass(g, (uint8_t)tuint8);
-		break;
-	case PROP_DESC_BDEVICEPROTOCOL:
-		tuint8 = g_value_get_uchar(value);
-		usbg_ret = usbg_set_gadget_device_protocol(g, (uint8_t)tuint8);
-		break;
-	case PROP_DESC_BMAXPACKETSIZE:
-		tuint8 = g_value_get_uchar(value);
-		usbg_ret = usbg_set_gadget_device_max_packet(g, (uint8_t)tuint8);
-		break;
 	case PROP_DESC_IDVENDOR:
-		tuint16 = g_value_get_uchar(value);
-		usbg_ret = usbg_set_gadget_vendor_id(g, (uint16_t)tuint16);
-		break;
 	case PROP_DESC_IDPRODUCT:
-		tuint16 = g_value_get_uchar(value);
-		usbg_ret = usbg_set_gadget_product_id(g, (uint16_t)tuint16);
-		break;
 	case PROP_DESC_BCDDEVICE:
-		tuint16 = g_value_get_uint(value);
-		usbg_ret = usbg_set_gadget_device_bcd_device(g, (uint16_t)tuint16);
+		val = g_value_get_uint(value);
 		break;
-	case PROP_GADGET_NAME:
-		g_assert (descriptors->gadget_name == NULL);
-		descriptors->gadget_name = g_value_dup_string(value);
+
+	case PROP_DESC_BDEVICECLASS:
+	case PROP_DESC_BDEVICESUBCLASS:
+	case PROP_DESC_BDEVICEPROTOCOL:
+	case PROP_DESC_BMAXPACKETSIZE:
+		val = g_value_get_uchar(value);
 		break;
+	case PROP_GADGET_PTR:
+		g_assert (descriptors->gadget == NULL);
+		descriptors->gadget = g_value_get_pointer(value);
+		goto out;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-		break;
+		goto out;
+
 	}
+
+	usbg_ret = usbg_set_gadget_attr(gadget->g, property_id - 1, val);
 	if (usbg_ret != USBG_SUCCESS) {
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
 		ERROR("Error: %s: %s", usbg_error_name(usbg_ret),
 				usbg_strerror(usbg_ret));
 	}
+
+out:
+	return;
 }
 
 /**
@@ -152,16 +134,15 @@ gadget_descriptors_set_property(GObject      *object,
  * @return #GadgetDescriptors object.
  */
 GadgetDescriptors *
-gadget_descriptors_new(const gchar *gadget_name)
+gadget_descriptors_new(struct gd_gadget *gadget)
 {
-	g_return_val_if_fail(gadget_name != NULL, NULL);
+	g_return_val_if_fail(gadget != NULL, NULL);
 	GadgetDescriptors *object;
 
 	object = g_object_new(GADGET_TYPE_DESCRIPTORS,
-			     "gadget_name", gadget_name,
+			     "gd_gadget", gadget,
 			      NULL);
 	return object;
-
 }
 
 /**
@@ -179,72 +160,46 @@ gadget_descriptors_get_property(GObject    *object,
 				 GValue     *value,
 				 GParamSpec *pspec)
 {
-	gint usbg_ret = USBG_SUCCESS;
-	usbg_gadget *g = NULL;
 	GadgetDescriptors *descriptors = GADGET_DESCRIPTORS(object);
-	usbg_gadget_attrs g_attrs;
+	struct gd_gadget *gadget = descriptors->gadget;
+	gint val;
 
-	if (descriptors->gadget_name == NULL)
-		return;
-
-	g = usbg_get_gadget(ctx.state, descriptors->gadget_name);
-
-	if (g == NULL) {
-		ERROR("Cant get a gadget device by name");
+	if (gadget == NULL) {
+		ERROR("Cant get a gadget object");
 		return;
 	}
 
-	/* actualize data for gadget */
-	usbg_ret = usbg_get_gadget_attrs(g, &g_attrs);
-	if (usbg_ret != USBG_SUCCESS) {
-		ERROR("Cant get the USB gadget descriptors\n");
-		return;
-	}
-
-	switch(property_id) {
+	switch (property_id) {
 	case PROP_DESC_BCDUSB:
-		g_value_set_uint(value, g_attrs.bcdUSB);
-		break;
-	case PROP_DESC_BDEVICECLASS:
-		g_value_set_uchar(value, g_attrs.bDeviceClass);
-		break;
-	case PROP_DESC_BDEVICESUBCLASS:
-		g_value_set_uchar(value, g_attrs.bDeviceSubClass);
-		break;
-	case PROP_DESC_BDEVICEPROTOCOL:
-		g_value_set_uchar(value, g_attrs.bDeviceProtocol);
-		break;
-	case PROP_DESC_BMAXPACKETSIZE:
-		g_value_set_uchar(value, g_attrs.bMaxPacketSize0);
-		break;
 	case PROP_DESC_IDVENDOR:
-		g_value_set_uint(value, g_attrs.idVendor);
-		break;
 	case PROP_DESC_IDPRODUCT:
-		g_value_set_uint(value, g_attrs.idProduct);
-		break;
 	case PROP_DESC_BCDDEVICE:
-		g_value_set_uint(value, g_attrs.bcdDevice);
+		val = usbg_get_gadget_attr(gadget->g, property_id - 1);
+		if (val < 0)
+			goto error;
+		g_value_set_uint(value, (uint)val);
+		break;
+
+	case PROP_DESC_BDEVICECLASS:
+	case PROP_DESC_BDEVICESUBCLASS:
+	case PROP_DESC_BDEVICEPROTOCOL:
+	case PROP_DESC_BMAXPACKETSIZE:
+		val = usbg_get_gadget_attr(gadget->g, property_id - 1);
+		if (val < 0)
+			goto error;
+		g_value_set_uchar(value, (char)val);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
-		break;
+		return;
+
 	}
-}
 
-/**
- * @brief gadget descriptors finalize
- * @param[in] object GObject
- */
-static void
-gadget_descriptors_finalize(GObject *object)
-{
-	GadgetDescriptors *gadget_descriptors = GADGET_DESCRIPTORS(object);
-
-	g_free(gadget_descriptors->gadget_name);
-
-	if (G_OBJECT_CLASS(gadget_descriptors_parent_class)->finalize != NULL)
-		G_OBJECT_CLASS(gadget_descriptors_parent_class)->finalize(object);
+	return;
+error:
+	G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
+	ERROR("Cant get the USB gadget attribute\n");
+	return;
 }
 
 /**
@@ -254,51 +209,35 @@ gadget_descriptors_finalize(GObject *object)
 static void
 gadget_descriptors_class_init(GadgetDescriptorsClass *klass)
 {
-	GObjectClass *gobject_class;
+	GObjectClass *gobject_class = G_OBJECT_CLASS(klass);;
+	int i;
+	struct {
+		int id;
+		const char *name;
+	} properties[] = {
+		{ PROP_DESC_BCDUSB, "bcd-usb" },
+		{ PROP_DESC_BDEVICECLASS, "b-device-class" },
+		{ PROP_DESC_BDEVICESUBCLASS, "b-device-sub-class" },
+		{ PROP_DESC_BDEVICEPROTOCOL, "b-device-protocol" },
+		{ PROP_DESC_BMAXPACKETSIZE, "b-max-packet-size0" },
+		{ PROP_DESC_IDVENDOR, "id-vendor" },
+		{ PROP_DESC_IDPRODUCT, "id-product" },
+		{ PROP_DESC_BCDDEVICE, "bcd-device" }
+	};
 
-	gobject_class = G_OBJECT_CLASS(klass);
 	gobject_class->set_property = gadget_descriptors_set_property;
 	gobject_class->get_property = gadget_descriptors_get_property;
-	gobject_class->finalize = gadget_descriptors_finalize;
 
-	g_object_class_override_property(gobject_class,
-					PROP_DESC_BCDUSB,
-					"bcd-usb");
-
-	g_object_class_override_property(gobject_class,
-					PROP_DESC_BDEVICECLASS,
-					"b-device-class");
-
-	g_object_class_override_property(gobject_class,
-					PROP_DESC_BDEVICESUBCLASS,
-					"b-device-sub-class");
-
-	g_object_class_override_property(gobject_class,
-					PROP_DESC_BDEVICEPROTOCOL,
-					"b-device-protocol");
-
-	g_object_class_override_property(gobject_class,
-					PROP_DESC_BMAXPACKETSIZE,
-					"b-max-packet-size0");
-
-	g_object_class_override_property(gobject_class,
-					PROP_DESC_IDVENDOR,
-					"id-vendor");
-
-	g_object_class_override_property(gobject_class,
-					PROP_DESC_IDPRODUCT,
-					"id-product");
-
-	g_object_class_override_property(gobject_class,
-					PROP_DESC_BCDDEVICE,
-					"bcd-device");
+	for (i = 0; i < ARRAY_SIZE(properties); ++i)
+		g_object_class_override_property(gobject_class,
+						 properties[i].id,
+						 properties[i].name);
 
 	g_object_class_install_property(gobject_class,
-                                   PROP_GADGET_NAME,
-                                   g_param_spec_string("gadget_name",
-                                                       "Gadget name",
-                                                       "gadget name",
-                                                       NULL,
+                                   PROP_GADGET_PTR,
+                                   g_param_spec_pointer("gd_gadget",
+                                                       "Gadget ptr",
+                                                       "gadget ptr",
                                                        G_PARAM_READABLE |
                                                        G_PARAM_WRITABLE |
                                                        G_PARAM_CONSTRUCT_ONLY));

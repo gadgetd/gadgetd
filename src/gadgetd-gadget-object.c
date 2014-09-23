@@ -196,7 +196,7 @@ gadgetd_gadget_object_constructed(GObject *object)
 		   GADGET_TYPE_STRINGS,
 		   &gadget_object->g_strings_iface);
 
-	gadget_object->g_descriptors_iface = gadget_descriptors_new(gadget_object->gadget_name);
+	gadget_object->g_descriptors_iface = gadget_descriptors_new(gadget_object->gadget);
 
 	get_iface(G_OBJECT(gadget_object),
 		   GADGET_TYPE_DESCRIPTORS,

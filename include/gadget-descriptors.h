@@ -20,7 +20,7 @@
 
 #include <glib-object.h>
 #include <gio/gio.h>
-#include <usbg/usbg.h>
+#include <gadgetd-core.h>
 
 G_BEGIN_DECLS
 
@@ -34,7 +34,7 @@ typedef struct _GadgetDescriptorsClass	GadgetDescriptorsClass;
 #define GADGET_IS_DESCRIPTORS(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), GADGET_TYPE_DESCRIPTORS))
 
 GType gadget_descriptors_get_type (void) G_GNUC_CONST;
-GadgetDescriptors             *gadget_descriptors_new          (const gchar *gadget_name);
+GadgetDescriptors             *gadget_descriptors_new          (struct gd_gadget *gadget);
 
 G_END_DECLS
 
