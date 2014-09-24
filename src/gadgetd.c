@@ -30,6 +30,7 @@
 #include <gadgetd-create.h>
 #include <gadgetd-common.h>
 #include <gadget-daemon.h>
+#include <gadgetd-functions.h>
 
 #include <gio/gio.h>
 #include <glib/gprintf.h>
@@ -177,6 +178,11 @@ main(int argc, char **argv)
 		goto out;
 	}
 
+	g_ret = gd_init_functions();
+	if (g_ret != GD_SUCCESS) {
+		ERROR("Unable to initialize function list");
+		goto out;
+	}
 
 	g_ret = gadget_daemon_run();
 	if (g_ret != GD_SUCCESS) {
