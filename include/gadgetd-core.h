@@ -31,10 +31,19 @@ struct gd_gadget {
 	GList *configs;
 };
 
+enum {
+	FUNC_GROUP_OTHER,
+	FUNC_GROUP_SERIAL,
+	FUNC_GROUP_NET,
+	FUNC_GROUP_PHONET,
+	FUNC_GROUP_FFS,
+} gd_function_group;
+
 struct gd_function {
 	struct gd_gadget *parent;
 	char *instance;
 	char *type;
+	int function_group;
 	usbg_function *f;
 };
 

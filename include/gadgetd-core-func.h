@@ -22,6 +22,7 @@
 
 struct gd_function_type {
 	const char *name;
+	int function_group;
 	int (*create_instance)(struct gd_gadget *, struct gd_function_type *,
 			       const char *, struct gd_function **);
 	int (*rm_instance)(struct gd_function *);

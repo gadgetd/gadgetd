@@ -23,7 +23,8 @@ struct gd_kernel_func_type {
 	struct gd_function_type reg_type;
 };
 
-static int gd_create_kernel_func(struct gd_gadget *g,
+static int
+gd_create_kernel_func(struct gd_gadget *g,
 				 struct gd_function_type *t,
 				 const char *instance,
 				 struct gd_function **f)
@@ -49,13 +50,15 @@ static int gd_create_kernel_func(struct gd_gadget *g,
 
 	*f = func;
 	func->parent = g;
+	func->function_group = t->function_group;
 	g->funcs = g_list_append(g->funcs, func);
 	ret = GD_SUCCESS;
 out:
 	return ret;
 }
 
-static int gd_rm_kernel_func(struct gd_function *f)
+static int
+gd_rm_kernel_func(struct gd_function *f)
 {
 	int usbg_ret;
 
@@ -72,7 +75,8 @@ out:
 	return usbg_ret;
 }
 
-static int gd_cleanup_kernel_func_type(struct gd_function_type *t)
+static int
+gd_cleanup_kernel_func_type(struct gd_function_type *t)
 {
 	struct gd_kernel_func_type *type;
 	type = container_of(t, struct gd_kernel_func_type, reg_type);
@@ -83,7 +87,39 @@ static int gd_cleanup_kernel_func_type(struct gd_function_type *t)
 	return 0;
 }
 
-static int gd_register_kernel_funcs()
+static int
+gd_determine_function_group(int type)
+{
+	int group;
+
+	switch (type) {
+	case F_SERIAL:
+	case F_ACM:
+	case F_OBEX:
+		group = FUNC_GROUP_SERIAL;
+		break;
+	case F_ECM:
+	case F_SUBSET:
+	case F_NCM:
+	case F_EEM:
+	case F_RNDIS:
+		group = FUNC_GROUP_NET;
+		break;
+	case F_PHONET:
+		group = FUNC_GROUP_PHONET;
+		break;
+	case F_FFS:
+		group = FUNC_GROUP_FFS;
+		break;
+	default:
+		group = FUNC_GROUP_OTHER;
+	}
+
+	return group;
+}
+
+static int
+gd_register_kernel_funcs()
 {
 	int ret;
 	int func_type;
@@ -119,6 +155,7 @@ static int gd_register_kernel_funcs()
 		type->func_type = func_type;
 		/* Func will be freed in cleanup function while unregister */
 		type->reg_type.name = *func;
+		type->reg_type.function_group = gd_determine_function_group(func_type);
 		type->reg_type.create_instance = gd_create_kernel_func;
 		type->reg_type.rm_instance = gd_rm_kernel_func;
 		type->reg_type.on_unregister = gd_cleanup_kernel_func_type;
@@ -147,7 +184,8 @@ error:
 	return ret;
 }
 
-int gd_init_functions()
+int
+gd_init_functions()
 {
 	int ret;
 
