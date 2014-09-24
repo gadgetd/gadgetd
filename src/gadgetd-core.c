@@ -24,17 +24,33 @@ static GList *func_types = NULL;
 
 /* Register unregister function type */
 
-int
-gd_register_func_t(struct gd_function_type *type)
+static struct gd_function_type *
+gd_lookup_function_type(const gchar *type_name)
 {
 	GList *l;
 	struct gd_function_type *t;
 
 	for (l = g_list_first(func_types); l; l = g_list_next(l)) {
 		t = l->data;
-		if (!g_strcmp0(type->name, t->name))
-			return GD_ERROR_EXIST;
+		if (!g_strcmp0(type_name, t->name))
+			return t;
 	}
+
+	return NULL;
+}
+
+int
+gd_register_func_t(struct gd_function_type *type)
+{
+	struct gd_function_type *t;
+
+	/* Create and rm instace are mandatory */
+	if (!type->create_instance || !type->rm_instance)
+		return GD_ERROR_INVALID_PARAM;
+
+	t = gd_lookup_function_type(type->name);
+	if (t)
+		return GD_ERROR_EXIST;
 
 	func_types = g_list_append(func_types, type);
 
