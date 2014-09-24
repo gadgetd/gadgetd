@@ -35,7 +35,7 @@ struct _GadgetStrings
 {
 	GadgetdGadgetStringsSkeleton parent_instance;
 
-	gchar *gadget_name;
+	struct gd_gadget *gadget;
 };
 
 struct _GadgetStringsClass
@@ -45,14 +45,12 @@ struct _GadgetStringsClass
 
 enum
 {
-	PROPERTY,
-	MANUFACTURER,
-	PRODUCT,
-	SERIALNUMBER,
-	PROPERTY_GADGET_NAME
+	PROP_0,
+	PROP_STR_MANUFACTURER,
+	PROP_STR_PRODUCT,
+	PROP_STR_SERIAL_NUMBER,
+	PROP_GADGET_PTR
 };
-
-static void gadget_strings_iface_init(GadgetdGadgetStringsIface *iface);
 
 /**
  * @brief G_DEFINE_TYPE_WITH_CODE
@@ -61,22 +59,7 @@ static void gadget_strings_iface_init(GadgetdGadgetStringsIface *iface);
  * @see G_DEFINE_TYPE()
  */
 G_DEFINE_TYPE_WITH_CODE(GadgetStrings, gadget_strings, GADGETD_TYPE_GADGET_STRINGS_SKELETON,
-			 G_IMPLEMENT_INTERFACE(GADGETD_TYPE_GADGET_STRINGS, gadget_strings_iface_init));
-
-/**
- * @brief gadget strings finalize
- * @param[in] object GObject
- */
-static void
-gadget_strings_finalize(GObject *object)
-{
-	GadgetStrings *gadget_strings = GADGET_STRINGS(object);
-
-	g_free(gadget_strings->gadget_name);
-
-	if (G_OBJECT_CLASS(gadget_strings_parent_class)->finalize != NULL)
-		G_OBJECT_CLASS(gadget_strings_parent_class)->finalize(object);
-}
+			 G_IMPLEMENT_INTERFACE(GADGETD_TYPE_GADGET_STRINGS, NULL));
 
 /**
  * @brief gadget strings set property
@@ -93,40 +76,39 @@ gadget_strings_set_property(GObject        *object,
 			     GParamSpec     *pspec)
 {
 	/* TODO add lang support */
-	usbg_gadget *g = NULL;
 	GadgetStrings *strings = GADGET_STRINGS(object);
-	gchar *str = NULL;
+	struct gd_gadget *gadget = strings->gadget;
+	const gchar *str = NULL;
 	gint usbg_ret = USBG_SUCCESS;
 
-	if (strings->gadget_name != NULL)
-		g = usbg_get_gadget(ctx.state, strings->gadget_name);
-
-	if (g == NULL && property_id != PROPERTY_GADGET_NAME) {
-		ERROR("Cant get a gadget device by name");
+	if (gadget == NULL && property_id != PROP_GADGET_PTR) {
+		ERROR("Cant get a gadget device");
 		return;
 	}
 
-	str = g_value_dup_string(value);
+	if (property_id != PROP_GADGET_PTR)
+		str = g_value_get_string(value);
+
 	switch(property_id) {
-	case PRODUCT:
-		usbg_ret = usbg_set_gadget_product(g, LANG_US_ENG, str);
+	case PROP_STR_PRODUCT:
+		usbg_ret = usbg_set_gadget_product(gadget->g, LANG_US_ENG, str);
 		break;
-	case SERIALNUMBER:
-		usbg_ret = usbg_set_gadget_serial_number(g, LANG_US_ENG, str);
+	case PROP_STR_SERIAL_NUMBER:
+		usbg_ret = usbg_set_gadget_serial_number(gadget->g, LANG_US_ENG, str);
 		break;
-	case MANUFACTURER:
-		usbg_ret = usbg_set_gadget_manufacturer(g, LANG_US_ENG, str);
+	case PROP_STR_MANUFACTURER:
+		usbg_ret = usbg_set_gadget_manufacturer(gadget->g, LANG_US_ENG, str);
 		break;
-	case PROPERTY_GADGET_NAME:
-		g_assert(strings->gadget_name == NULL);
-		strings->gadget_name = str;
+	case PROP_GADGET_PTR:
+		g_assert(strings->gadget == NULL);
+		strings->gadget = g_value_get_pointer(value);
 		str = NULL;
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
 		break;
 	}
-	g_free(str);
+
 	if (usbg_ret != USBG_SUCCESS) {
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
 		ERROR("Error: %s: %s", usbg_error_name(usbg_ret),
@@ -150,35 +132,29 @@ gadget_strings_get_property(GObject     *object,
 			     GParamSpec  *pspec)
 {
 	gint usbg_ret;
-	usbg_gadget *g = NULL;
 	usbg_gadget_strs g_strs;
 	GadgetStrings *strings = GADGET_STRINGS(object);
+	struct gd_gadget *gadget = strings->gadget;
 
-	if (strings->gadget_name == NULL)
+	if (gadget == NULL)
 		return;
-
-	g = usbg_get_gadget(ctx.state, strings->gadget_name);
-	if (g == NULL) {
-		ERROR("Cant get a gadget device by name");
-		return;
-	}
 
 	/* actually strings available only in en_US lang */
 	/* actualize data for gadget */
-	usbg_ret = usbg_get_gadget_strs(g, LANG_US_ENG, &g_strs);
-	if (usbg_ret) {
+	usbg_ret = usbg_get_gadget_strs(gadget->g, LANG_US_ENG, &g_strs);
+	if (usbg_ret != USBG_SUCCESS) {
 		ERROR("Cant get the USB gadget strings");
 		return;
 	}
 
 	switch(property_id) {
-	case PRODUCT:
+	case PROP_STR_PRODUCT:
 		g_value_set_string(value, g_strs.str_prd);
 		break;
-	case MANUFACTURER:
+	case PROP_STR_MANUFACTURER:
 		g_value_set_string(value, g_strs.str_mnf);
 		break;
-	case SERIALNUMBER:
+	case PROP_STR_SERIAL_NUMBER:
 		g_value_set_string(value, g_strs.str_ser);
 		break;
 	default:
@@ -193,13 +169,13 @@ gadget_strings_get_property(GObject     *object,
  * @return #GadgetStrings object.
  */
 GadgetStrings *
-gadget_strings_new(const gchar *gadget_name)
+gadget_strings_new(struct gd_gadget *gadget)
 {
-	g_return_val_if_fail(gadget_name != NULL, NULL);
+	g_return_val_if_fail(gadget != NULL, NULL);
 	GadgetStrings *object;
 
 	object = g_object_new(GADGET_TYPE_STRINGS,
-			     "gadget_name", gadget_name,
+			     "gd_gadget", gadget,
 			      NULL);
 
 	return object;
@@ -217,39 +193,27 @@ gadget_strings_class_init(GadgetStringsClass *klass)
 	gobject_class = G_OBJECT_CLASS(klass);
 	gobject_class->set_property = gadget_strings_set_property;
 	gobject_class->get_property = gadget_strings_get_property;
-	gobject_class->finalize = gadget_strings_finalize;
 
 	g_object_class_override_property(gobject_class,
-					  MANUFACTURER,
+					  PROP_STR_MANUFACTURER,
 					 "manufacturer");
 
 	g_object_class_override_property(gobject_class,
-					  PRODUCT,
+					  PROP_STR_PRODUCT,
 					 "product");
 
 	g_object_class_override_property(gobject_class,
-					  SERIALNUMBER,
+					  PROP_STR_SERIAL_NUMBER,
 					 "serialnumber");
 
 	g_object_class_install_property(gobject_class,
-                                   PROPERTY_GADGET_NAME,
-                                   g_param_spec_string("gadget_name",
-                                                       "Gadget name",
-                                                       "gadget name",
-                                                       NULL,
+                                   PROP_GADGET_PTR,
+                                   g_param_spec_pointer("gd_gadget",
+                                                       "Gadget ptr",
+                                                       "gadget ptr",
                                                        G_PARAM_READABLE |
                                                        G_PARAM_WRITABLE |
                                                        G_PARAM_CONSTRUCT_ONLY));
-}
-
-/**
- * @brief gadget strings iface init
- * @param[in] daemon GadgetStrings struct
- */
-static void
-gadget_strings_iface_init(GadgetdGadgetStringsIface *iface)
-{
-	/* noop */
 }
 
 /**

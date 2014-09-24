@@ -189,10 +189,10 @@ gadgetd_gadget_object_constructed(GObject *object)
 
 	path = g_strdup_printf("%s/%s", gadgetd_path, gadget_object->gadget_name);
 
-	gadget_object->g_strings_iface = gadget_strings_new(gadget_object->gadget_name);
-
 	/* add interfaces */
-	get_iface (G_OBJECT(gadget_object),
+	gadget_object->g_strings_iface = gadget_strings_new(gadget_object->gadget);
+
+	get_iface(G_OBJECT(gadget_object),
 		   GADGET_TYPE_STRINGS,
 		   &gadget_object->g_strings_iface);
 

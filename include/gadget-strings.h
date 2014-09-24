@@ -19,6 +19,7 @@
 #define __GADGET_STRINGS_H__
 
 #include <glib-object.h>
+#include <gadgetd-core.h>
 
 G_BEGIN_DECLS
 
@@ -32,7 +33,7 @@ typedef struct _GadgetStringsClass	GadgetStringsClass;
 #define GADGET_IS_STRINGS(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), GADGET_TYPE_STRINGS))
 
 GType gadget_strings_get_type (void) G_GNUC_CONST;
-GadgetStrings                 *gadget_strings_new                   (const gchar *gadget_name);
+GadgetStrings                 *gadget_strings_new                   (struct gd_gadget *gadget);
 
 G_END_DECLS
 
