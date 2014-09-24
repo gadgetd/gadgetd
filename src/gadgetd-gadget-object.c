@@ -210,9 +210,9 @@ gadgetd_gadget_object_constructed(GObject *object)
 		   &gadget_object->g_func_manager_iface);
 
 	gadget_object->g_cfg_manager_iface = gadget_config_manager_new(daemon,
-									 gadget_object->gadget_name);
+									 gadget_object->gadget);
 
-	get_iface (G_OBJECT(gadget_object),
+	get_iface(G_OBJECT(gadget_object),
 		   GADGET_TYPE_CONFIG_MANAGER,
 		   &gadget_object->g_cfg_manager_iface);
 
