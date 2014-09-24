@@ -294,3 +294,33 @@ out:
 	return ret;
 }
 
+int
+gd_create_function(struct gd_gadget *gadget, const gchar *type_name,
+		   const gchar *instance, struct gd_function **f,
+		   const gchar **error)
+{
+	struct gd_function_type *type;
+	int usbg_ret;
+	int ret;
+	struct gd_function *func;
+
+	type = gd_lookup_function_type(type_name);
+	if (!type) {
+		*error = "Type not found";
+		ret = GD_ERROR_NOT_FOUND;
+		goto out;
+	}
+
+	usbg_ret = type->create_instance(gadget, type, instance, &func);
+	if (usbg_ret != USBG_SUCCESS) {
+		*error = usbg_error_name(usbg_ret);
+		ret = GD_ERROR_OTHER_ERROR;
+		goto out;
+	}
+
+	*f = func;
+	ret = GD_SUCCESS;
+out:
+	return ret;
+}
+

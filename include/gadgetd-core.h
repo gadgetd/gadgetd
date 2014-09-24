@@ -63,5 +63,18 @@ int gd_create_gadget(const gchar *name, GVariant *attrs,
  */
 GArray *gd_list_func_types(gboolean zero_terminated);
 
+/**
+ * @brief Creates new function in a gadget
+ * @param gadget Pointer to gadnet where function should be created
+ * @param type String which represents type of function
+ * @param instance Instance name
+ * @param f Pleace to store new function
+ * @param error Place to store error string. Should not be freed
+ * @return 0 on success, gd_error on failure
+ */
+int gd_create_function(struct gd_gadget *gadget, const gchar *type,
+		       const gchar *instance, struct gd_function **f,
+		       const gchar **error);
+
 #endif /* GADGETD_CORE_H */
 
