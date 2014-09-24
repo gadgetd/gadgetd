@@ -20,7 +20,7 @@
 
 #include <gadget-daemon.h>
 #include "gadget-manager.h"
-#include <usbg/usbg.h>
+#include <gadgetd-core.h>
 
 G_BEGIN_DECLS
 
@@ -33,17 +33,11 @@ typedef struct _GadgetdFunctionObject GadgetdFunctionObject;
 
 GType                  gadgetd_function_object_get_type (void) G_GNUC_CONST;
 GadgetdFunctionObject *gadgetd_function_object_new      (const gchar *function_path,
-							 const gchar *instance,
-							/* str_type: Type of function as a string.
-							   Can be one of:
-							   - Kernel functions (acm, ecm, ...)
-							   - Userspace functions implemented
-							   using FunctitonFS (ffs.sdb, ffs.mtp)
-							*/
-							 const gchar *_str_type,
-							 usbg_function *f);
-usbg_function *gadgetd_function_object_get_function(GadgetdFunctionObject *function_object);
+							 struct gd_function *func);
+
+struct gd_function *gadgetd_function_object_get_function(GadgetdFunctionObject *function_object);
 
 G_END_DECLS
 
 #endif /* GADGETD_FUNCTION_OBJECT_H */
+

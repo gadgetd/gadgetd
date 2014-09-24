@@ -113,7 +113,7 @@ function_serial_attrs_get_property(GObject    *object,
 
 	function_object = function_serial_attrs_get_function_object(serial_attrs);
 
-	f = gadgetd_function_object_get_function(function_object);
+	f = gadgetd_function_object_get_function(function_object)->f;
 
 	if (f == NULL) {
 		ERROR("Cant get function by name");

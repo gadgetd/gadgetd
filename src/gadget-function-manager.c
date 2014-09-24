@@ -282,8 +282,7 @@ handle_create_function(GadgetdGadgetFunctionManager	*object,
 	if (ret != GD_SUCCESS)
 		goto err;
 
-	function_object = gadgetd_function_object_new(function_path, instance,
-						      type, func->f);
+	function_object = gadgetd_function_object_new(function_path, func);
 	if (function_object == NULL) {
 		msg = "Unable to create function object";
 		goto err;
