@@ -207,18 +207,17 @@ static gboolean
 handle_create_function(GadgetdGadgetFunctionManager	*object,
 		        GDBusMethodInvocation		*invocation,
 		        const gchar			*instance,
-		        const gchar			*_str_type)
+		        const gchar			*type)
 {
 	gchar _cleanup_g_free_ *function_path = NULL;
-	gint usbg_ret = USBG_SUCCESS;
-	usbg_function_type type;
-	usbg_function *f = NULL;
 	const gchar *msg = NULL;
 	GadgetFunctionManager *func_manager = GADGET_FUNCTION_MANAGER(object);
 	GadgetdFunctionObject *function_object;
 	GadgetDaemon *daemon;
 	struct gd_gadget *gadget = func_manager->gadget;
 	const gchar *gadget_name = usbg_get_gadget_name(gadget->g);
+	struct gd_function *func = NULL;
+	gint ret;
 
 	daemon = gadget_function_manager_get_daemon(GADGET_FUNCTION_MANAGER(object));
 
@@ -228,11 +227,6 @@ handle_create_function(GadgetdGadgetFunctionManager	*object,
 	if (!instance)
 		return FALSE;
 
-	if (!get_function_type(_str_type, &type)) {
-		msg = "Invalid function type";
-		goto err;
-	}
-
 	if (gadget == NULL || gadget_name == NULL) {
 		msg = "Unable to get gadget";
 		goto err;
@@ -241,7 +235,7 @@ handle_create_function(GadgetdGadgetFunctionManager	*object,
 	function_path = g_strdup_printf("%s/%s/Function/%s/%s",
 					gadgetd_path,
 					gadget_name,
-					_str_type,
+					type,
 					instance);
 
 	if (function_path == NULL || !g_variant_is_object_path(function_path)) {
@@ -249,17 +243,12 @@ handle_create_function(GadgetdGadgetFunctionManager	*object,
 		goto err;
 	}
 
-	usbg_ret = usbg_create_function(gadget->g, type, instance, NULL, &f);
-	if (usbg_ret != USBG_SUCCESS) {
-		ERROR("Error on function create");
-		ERROR("Error: %s: %s", usbg_error_name(usbg_ret),
-			usbg_strerror(usbg_ret));
-		msg = usbg_error_name(usbg_ret);
+	ret = gd_create_function(gadget, type, instance, &func, &msg);
+	if (ret != GD_SUCCESS)
 		goto err;
-	}
 
 	function_object = gadgetd_function_object_new(gadget_name, instance,
-						      _str_type, f);
+						      type, func->f);
 	if (function_object == NULL) {
 		msg = "Unable to create function object";
 		goto err;
