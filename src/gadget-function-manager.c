@@ -36,7 +36,7 @@ struct _GadgetFunctionManager
 	GadgetdGadgetFunctionManagerSkeleton parent_instance;
 	GadgetDaemon *daemon;
 
-	gchar *gadget_name;
+	struct gd_gadget *gadget;
 };
 
 struct _GadgetFunctionManagerClass
@@ -48,7 +48,7 @@ enum
 {
 	PROP_0,
 	PROP_DAEMON,
-	PROP_GADGET_NAME
+	PROP_GADGET_PTR
 } prop_func_manager;
 
 /**
@@ -77,21 +77,6 @@ gadget_function_manager_init(GadgetFunctionManager *function_manager)
 }
 
 /**
- * @brief gadget function manager finalize
- * @param[in] object GObject
- */
-static void
-gadget_function_manager_finalize(GObject *object)
-{
-	GadgetFunctionManager *function_manager = GADGET_FUNCTION_MANAGER(object);
-
-	g_free(function_manager->gadget_name);
-
-	if (G_OBJECT_CLASS(gadget_function_manager_parent_class)->finalize != NULL)
-		G_OBJECT_CLASS(gadget_function_manager_parent_class)->finalize(object);
-}
-
-/**
  * @brief gadget function manager Set property
  * @param[in] object a GObject
  * @param[in] property_id numeric id under which the property was registered with
@@ -111,9 +96,9 @@ gadget_function_manager_set_property(GObject            *object,
 		g_assert(fun_manager->daemon == NULL);
 		fun_manager->daemon = g_value_get_object(value);
 		break;
-	case PROP_GADGET_NAME:
-		g_assert(fun_manager->gadget_name == NULL);
-		fun_manager->gadget_name = g_value_dup_string(value);
+	case PROP_GADGET_PTR:
+		g_assert(fun_manager->gadget == NULL);
+		fun_manager->gadget = g_value_get_pointer(value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
@@ -152,16 +137,14 @@ gadget_function_manager_class_init(GadgetFunctionManagerClass *klass)
 	GObjectClass *gobject_class;
 
 	gobject_class = G_OBJECT_CLASS(klass);
-	gobject_class->finalize     = gadget_function_manager_finalize;
 	gobject_class->set_property = gadget_function_manager_set_property;
 	gobject_class->get_property = gadget_function_manager_get_property;
 
 	g_object_class_install_property(gobject_class,
-                                   PROP_GADGET_NAME,
-                                   g_param_spec_string("gadget_name",
-                                                       "Gadget name",
-                                                       "gadget name",
-                                                       NULL,
+                                   PROP_GADGET_PTR,
+                                   g_param_spec_pointer("gd_gadget",
+                                                       "Gadget ptr",
+                                                       "gadget ptr",
                                                        G_PARAM_READABLE |
                                                        G_PARAM_WRITABLE |
                                                        G_PARAM_CONSTRUCT_ONLY));
@@ -182,18 +165,19 @@ gadget_function_manager_class_init(GadgetFunctionManagerClass *klass)
  * @brief gadget function manager new
  * @details Create a new GadgetFunctionManager instance
  * @param[in] daemon GadgetDaemon
+ * @param[in] gadget Pointer to gadget
  * @return GadgetFunctionManager object neet to be free.
  */
 GadgetFunctionManager *
-gadget_function_manager_new(GadgetDaemon *daemon, const gchar *gadget_name)
+gadget_function_manager_new(GadgetDaemon *daemon, struct gd_gadget *gadget)
 {
-	g_return_val_if_fail(gadget_name != NULL, NULL);
+	g_return_val_if_fail(gadget != NULL, NULL);
 
 	GadgetFunctionManager *object;
 
 	object = g_object_new(GADGET_TYPE_FUNCTION_MANAGER,
 			     "daemon", daemon,
-			     "gadget_name", gadget_name,
+			     "gd_gadget", gadget,
 			      NULL);
 
 	return object;
@@ -228,12 +212,13 @@ handle_create_function(GadgetdGadgetFunctionManager	*object,
 	gchar _cleanup_g_free_ *function_path = NULL;
 	gint usbg_ret = USBG_SUCCESS;
 	usbg_function_type type;
-	usbg_gadget *g = NULL;
-	usbg_function *f;
+	usbg_function *f = NULL;
 	const gchar *msg = NULL;
 	GadgetFunctionManager *func_manager = GADGET_FUNCTION_MANAGER(object);
 	GadgetdFunctionObject *function_object;
 	GadgetDaemon *daemon;
+	struct gd_gadget *gadget = func_manager->gadget;
+	const gchar *gadget_name = usbg_get_gadget_name(gadget->g);
 
 	daemon = gadget_function_manager_get_daemon(GADGET_FUNCTION_MANAGER(object));
 
@@ -248,14 +233,14 @@ handle_create_function(GadgetdGadgetFunctionManager	*object,
 		goto err;
 	}
 
-	if (func_manager->gadget_name == NULL) {
-		msg = "Unknown gadget name";
+	if (gadget == NULL || gadget_name == NULL) {
+		msg = "Unable to get gadget";
 		goto err;
 	}
 
 	function_path = g_strdup_printf("%s/%s/Function/%s/%s",
 					gadgetd_path,
-					func_manager->gadget_name,
+					gadget_name,
 					_str_type,
 					instance);
 
@@ -264,18 +249,7 @@ handle_create_function(GadgetdGadgetFunctionManager	*object,
 		goto err;
 	}
 
-	g = usbg_get_gadget(ctx.state, func_manager->gadget_name);
-	if (g == NULL) {
-		msg = "Cant get a gadget device by name";
-		goto err;
-	}
-
-	usbg_ret = usbg_create_function(g,
-					type,
-					instance,
-					NULL,
-					&f);
-
+	usbg_ret = usbg_create_function(gadget->g, type, instance, NULL, &f);
 	if (usbg_ret != USBG_SUCCESS) {
 		ERROR("Error on function create");
 		ERROR("Error: %s: %s", usbg_error_name(usbg_ret),
@@ -284,8 +258,8 @@ handle_create_function(GadgetdGadgetFunctionManager	*object,
 		goto err;
 	}
 
-	function_object = gadgetd_function_object_new(func_manager->gadget_name,
-						instance, _str_type, f);
+	function_object = gadgetd_function_object_new(gadget_name, instance,
+						      _str_type, f);
 	if (function_object == NULL) {
 		msg = "Unable to create function object";
 		goto err;
