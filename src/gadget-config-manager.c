@@ -37,6 +37,7 @@ struct _GadgetConfigManager
 	GadgetDaemon *daemon;
 
 	struct gd_gadget *gadget;
+	gchar *gadget_path;
 };
 
 struct _GadgetConfigManagerClass
@@ -48,6 +49,7 @@ enum
 {
 	PROP_0,
 	PROP_DAEMON,
+	PROP_GADGET_PATH,
 	PROP_GADGET_PTR
 } prop_cfg_manager;
 
@@ -77,6 +79,21 @@ gadget_config_manager_init(GadgetConfigManager *config_manager)
 }
 
 /**
+ * @brief gadget config manager finalize
+ * @param[in] object GObject
+ */
+static void
+gadget_config_manager_finalize(GObject *object)
+{
+	GadgetConfigManager *config_manager = GADGET_CONFIG_MANAGER(object);
+
+	g_free(config_manager->gadget_path);
+
+	if (G_OBJECT_CLASS(gadget_config_manager_parent_class)->finalize != NULL)
+		G_OBJECT_CLASS(gadget_config_manager_parent_class)->finalize(object);
+}
+
+/**
  * @brief gadget config manager Set property
  * @param[in] object a GObject
  * @param[in] property_id numeric id under which the property was registered with
@@ -99,6 +116,10 @@ gadget_config_manager_set_property(GObject            *object,
 	case PROP_GADGET_PTR:
 		g_assert(cfg_manager->gadget == NULL);
 		cfg_manager->gadget = g_value_get_pointer(value);
+		break;
+	case PROP_GADGET_PATH:
+		g_assert(cfg_manager->gadget_path == NULL);
+		cfg_manager->gadget_path = g_value_dup_string(value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
@@ -137,6 +158,7 @@ gadget_config_manager_class_init(GadgetConfigManagerClass *klass)
 	GObjectClass *gobject_class;
 
 	gobject_class = G_OBJECT_CLASS(klass);
+	gobject_class->finalize     = gadget_config_manager_finalize;
 	gobject_class->set_property = gadget_config_manager_set_property;
 	gobject_class->get_property = gadget_config_manager_get_property;
 
@@ -148,6 +170,17 @@ gadget_config_manager_class_init(GadgetConfigManagerClass *klass)
                                                        G_PARAM_READABLE |
                                                        G_PARAM_WRITABLE |
                                                        G_PARAM_CONSTRUCT_ONLY));
+
+	g_object_class_install_property(gobject_class,
+                                   PROP_GADGET_PATH,
+                                   g_param_spec_string("gadget_path",
+                                                       "Gadget path",
+                                                       "gadget path",
+						       NULL,
+                                                       G_PARAM_READABLE |
+                                                       G_PARAM_WRITABLE |
+                                                       G_PARAM_CONSTRUCT_ONLY));
+
 
 	g_object_class_install_property(gobject_class,
                                    PROP_DAEMON,
@@ -165,19 +198,22 @@ gadget_config_manager_class_init(GadgetConfigManagerClass *klass)
  * @brief gadget config manager new
  * @details Create a new GadgetConfigManager instance
  * @param[in] daemon GadgetDaemon
+ * @param[in] gadget_path Place where gaget is exported
  * @param[in] gadget Pointer to gadget
  * @return GadgetConfigManager object neet to be free.
  */
 GadgetConfigManager *
-gadget_config_manager_new(GadgetDaemon *daemon, struct gd_gadget *gadget)
+gadget_config_manager_new(GadgetDaemon *daemon, const gchar *gadget_path,
+			  struct gd_gadget *gadget)
 {
 	g_return_val_if_fail(gadget != NULL, NULL);
 
 	GadgetConfigManager *object;
 
 	object = g_object_new(GADGET_TYPE_CONFIG_MANAGER,
-			     "daemon", daemon,
-			     "gd_gadget", gadget,
+			      "daemon", daemon,
+			      "gadget_path", gadget_path,
+			      "gd_gadget", gadget,
 			      NULL);
 
 	return object;
@@ -216,16 +252,14 @@ handle_create_config(GadgetdGadgetConfigManager  *object,
 	GadgetDaemon *daemon;
 	GadgetdConfigObject *config_object;
 	struct gd_gadget *gadget = config_manager->gadget;
-	const gchar *gadget_name = usbg_get_gadget_name(gadget->g);
 
 	INFO("handled create config");
 
 	daemon = gadget_config_manager_get_daemon(GADGET_CONFIG_MANAGER(object));
 
-	config_path = g_strdup_printf("%s/%s/Config/%d",
-					gadgetd_path,
-					gadget_name,
-					config_id);
+	config_path = g_strdup_printf("%s/Config/%d",
+				      config_manager->gadget_path,
+				      config_id);
 
 	if (config_path == NULL || config_label == NULL ||
 			!g_variant_is_object_path(config_path)) {
@@ -243,7 +277,7 @@ handle_create_config(GadgetdGadgetConfigManager  *object,
 		goto err;
 	}
 
-	config_object = gadgetd_config_object_new(gadget_name,
+	config_object = gadgetd_config_object_new(config_path,
 						  config_id, config_label, c);
 	if (config_object == NULL) {
 		msg = "Unable to create function object";

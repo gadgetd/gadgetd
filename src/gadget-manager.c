@@ -246,7 +246,7 @@ handle_create_gadget(GadgetdGadgetManager	*object,
 	}
 
 	/* create dbus gadget object */
-	gadget_object = gadgetd_gadget_object_new(daemon, gadget_name, g);
+	gadget_object = gadgetd_gadget_object_new(daemon, path, g);
 	g_dbus_object_manager_server_export(gadget_daemon_get_object_manager(daemon),
 					    G_DBUS_OBJECT_SKELETON(gadget_object));
 

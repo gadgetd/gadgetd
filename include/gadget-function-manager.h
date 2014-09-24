@@ -35,7 +35,9 @@ typedef struct _GadgetFunctionManager GadgetFunctionManager;
 #define GADGET_IS_FUNCTION_MANAGER(o)	(G_TYPE_CHECK_INSTANCE_TYPE ((o), GADGET_TYPE_FUNCTION_MANAGER))
 
 GType                          gadget_function_manager_get_type (void) G_GNUC_CONST;
-GadgetFunctionManager         *gadget_function_manager_new      (GadgetDaemon *daemon, struct gd_gadget *gadget);
+GadgetFunctionManager         *gadget_function_manager_new      (GadgetDaemon *daemon,
+								 const gchar *gadget_path,
+								 struct gd_gadget *gadget);
 
 G_END_DECLS
 

@@ -37,7 +37,7 @@ struct _GadgetdGadgetObject
 	GadgetdObjectSkeleton parent_instance;
 	GadgetDaemon *daemon;
 
-	gchar *gadget_name;
+	gchar *gadget_path;
 	struct gd_gadget *gadget;
 
 	GadgetStrings *g_strings_iface;
@@ -58,7 +58,7 @@ enum
 {
 	PROPERTY,
 	PROPERTY_DAEMON,
-	PROPERTY_GADGET_NAME,
+	PROPERTY_GADGET_PATH,
 	PROPERTY_GADGET_PTR
 };
 
@@ -71,12 +71,12 @@ gadgetd_gadget_object_finalize(GObject *object)
 {
 	GadgetdGadgetObject *gadget_object = GADGETD_GADGET_OBJECT(object);
 
-	g_free(gadget_object->gadget_name);
+	g_free(gadget_object->gadget_path);
 
 	g_free(gadget_object->gadget);
 
 	if (gadget_object->g_strings_iface != NULL)
-		g_object_unref (gadget_object->g_strings_iface);
+		g_object_unref(gadget_object->g_strings_iface);
 
 	if (gadget_object->g_descriptors_iface != NULL)
 		g_object_unref(gadget_object->g_descriptors_iface);
@@ -137,9 +137,9 @@ gadgetd_gadget_object_set_property(GObject            *object,
 		g_assert(gadget_object->daemon == NULL);
 		gadget_object->daemon = g_value_get_object(value);
 		break;
-	case PROPERTY_GADGET_NAME:
-		g_assert(gadget_object->gadget_name == NULL);
-		gadget_object->gadget_name = g_value_dup_string(value);
+	case PROPERTY_GADGET_PATH:
+		g_assert(gadget_object->gadget_path == NULL);
+		gadget_object->gadget_path = g_value_dup_string(value);
 		break;
 	case PROPERTY_GADGET_PTR:
 		g_assert(gadget_object->gadget == NULL);
@@ -182,12 +182,10 @@ static void
 gadgetd_gadget_object_constructed(GObject *object)
 {
 	GadgetdGadgetObject *gadget_object = GADGETD_GADGET_OBJECT(object);
-	gchar *path;
+	gchar *path = gadget_object->gadget_path;
 	GadgetDaemon *daemon;
 
 	daemon = gadgetd_gadget_object_get_daemon(gadget_object);
-
-	path = g_strdup_printf("%s/%s", gadgetd_path, gadget_object->gadget_name);
 
 	/* add interfaces */
 	gadget_object->g_strings_iface = gadget_strings_new(gadget_object->gadget);
@@ -203,6 +201,7 @@ gadgetd_gadget_object_constructed(GObject *object)
 		   &gadget_object->g_descriptors_iface);
 
 	gadget_object->g_func_manager_iface = gadget_function_manager_new(daemon,
+									  path,
 									  gadget_object->gadget);
 
 	get_iface(G_OBJECT(gadget_object),
@@ -210,7 +209,8 @@ gadgetd_gadget_object_constructed(GObject *object)
 		   &gadget_object->g_func_manager_iface);
 
 	gadget_object->g_cfg_manager_iface = gadget_config_manager_new(daemon,
-									 gadget_object->gadget);
+								       path,
+								       gadget_object->gadget);
 
 	get_iface(G_OBJECT(gadget_object),
 		   GADGET_TYPE_CONFIG_MANAGER,
@@ -221,7 +221,6 @@ gadgetd_gadget_object_constructed(GObject *object)
 	else
 		ERROR("Unexpected error during gadget object creation");
 
-	g_free(path);
 	if (G_OBJECT_CLASS(gadgetd_gadget_object_parent_class)->constructed != NULL)
 		G_OBJECT_CLASS(gadgetd_gadget_object_parent_class)->constructed(object);
 
@@ -254,10 +253,10 @@ gadgetd_gadget_object_class_init(GadgetdGadgetObjectClass *klass)
                                                        G_PARAM_STATIC_STRINGS));
 
 	g_object_class_install_property(gobject_class,
-                                   PROPERTY_GADGET_NAME,
-                                   g_param_spec_string("gadget_name",
-                                                       "Gadget name",
-                                                       "gadget name",
+                                   PROPERTY_GADGET_PATH,
+                                   g_param_spec_string("gadget_path",
+                                                       "Gadget path",
+                                                       "gadget path",
                                                        NULL,
                                                        G_PARAM_READABLE |
                                                        G_PARAM_WRITABLE |
@@ -276,20 +275,20 @@ gadgetd_gadget_object_class_init(GadgetdGadgetObjectClass *klass)
 /**
  * @brief gadgetd gadget object new
  * @param[in] daemon GadgetDaemon
- * @param[in] gadget_name gchar gadget name
+ * @param[in] gadget_path Path where object should be exported
  * @return GadgetdGadgetObject object
  */
 GadgetdGadgetObject *
-gadgetd_gadget_object_new(GadgetDaemon *daemon, const gchar *gadget_name,
+gadgetd_gadget_object_new(GadgetDaemon *daemon, const gchar *gadget_path,
 			  struct gd_gadget *g)
 {
 	g_return_val_if_fail(GADGET_IS_DAEMON(daemon), NULL);
-	g_return_val_if_fail(gadget_name != NULL, NULL);
+	g_return_val_if_fail(gadget_path != NULL, NULL);
 
 	GadgetdGadgetObject *object;
 	object = g_object_new(GADGETD_TYPE_GADGET_OBJECT,
 			     "daemon", daemon,
-			     "gadget_name", gadget_name,
+			     "gadget_path", gadget_path,
 			      "gd_gadget", g,
 			      NULL);
 

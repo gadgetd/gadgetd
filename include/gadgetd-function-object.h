@@ -32,14 +32,16 @@ typedef struct _GadgetdFunctionObject GadgetdFunctionObject;
 #define GADGETD_IS_FUNCTION_OBJECT(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), GADGETD_TYPE_FUNCTION_OBJECT))
 
 GType                  gadgetd_function_object_get_type (void) G_GNUC_CONST;
-GadgetdFunctionObject *gadgetd_function_object_new      (const gchar *gadget_name,const gchar *instance,
+GadgetdFunctionObject *gadgetd_function_object_new      (const gchar *function_path,
+							 const gchar *instance,
 							/* str_type: Type of function as a string.
 							   Can be one of:
 							   - Kernel functions (acm, ecm, ...)
 							   - Userspace functions implemented
 							   using FunctitonFS (ffs.sdb, ffs.mtp)
 							*/
-							const gchar *_str_type, usbg_function *f;);
+							 const gchar *_str_type,
+							 usbg_function *f);
 usbg_function *gadgetd_function_object_get_function(GadgetdFunctionObject *function_object);
 
 G_END_DECLS

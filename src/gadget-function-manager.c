@@ -37,6 +37,7 @@ struct _GadgetFunctionManager
 	GadgetDaemon *daemon;
 
 	struct gd_gadget *gadget;
+	gchar *gadget_path;
 };
 
 struct _GadgetFunctionManagerClass
@@ -48,6 +49,7 @@ enum
 {
 	PROP_0,
 	PROP_DAEMON,
+	PROP_GADGET_PATH,
 	PROP_GADGET_PTR
 } prop_func_manager;
 
@@ -77,6 +79,21 @@ gadget_function_manager_init(GadgetFunctionManager *function_manager)
 }
 
 /**
+ * @brief gadget function manager finalize
+ * @param[in] object GObject
+ */
+static void
+gadget_function_manager_finalize(GObject *object)
+{
+	GadgetFunctionManager *function_manager = GADGET_FUNCTION_MANAGER(object);
+
+	g_free(function_manager->gadget_path);
+
+	if (G_OBJECT_CLASS(gadget_function_manager_parent_class)->finalize != NULL)
+		G_OBJECT_CLASS(gadget_function_manager_parent_class)->finalize(object);
+}
+
+/**
  * @brief gadget function manager Set property
  * @param[in] object a GObject
  * @param[in] property_id numeric id under which the property was registered with
@@ -95,6 +112,10 @@ gadget_function_manager_set_property(GObject            *object,
 	case PROP_DAEMON:
 		g_assert(fun_manager->daemon == NULL);
 		fun_manager->daemon = g_value_get_object(value);
+		break;
+	case PROP_GADGET_PATH:
+		g_assert(fun_manager->gadget_path == NULL);
+		fun_manager->gadget_path = g_value_dup_string(value);
 		break;
 	case PROP_GADGET_PTR:
 		g_assert(fun_manager->gadget == NULL);
@@ -137,6 +158,7 @@ gadget_function_manager_class_init(GadgetFunctionManagerClass *klass)
 	GObjectClass *gobject_class;
 
 	gobject_class = G_OBJECT_CLASS(klass);
+	gobject_class->finalize     = gadget_function_manager_finalize;
 	gobject_class->set_property = gadget_function_manager_set_property;
 	gobject_class->get_property = gadget_function_manager_get_property;
 
@@ -148,6 +170,17 @@ gadget_function_manager_class_init(GadgetFunctionManagerClass *klass)
                                                        G_PARAM_READABLE |
                                                        G_PARAM_WRITABLE |
                                                        G_PARAM_CONSTRUCT_ONLY));
+
+	g_object_class_install_property(gobject_class,
+                                   PROP_GADGET_PATH,
+                                   g_param_spec_string("gadget_path",
+                                                       "Gadget path",
+                                                       "gadget path",
+						       NULL,
+                                                       G_PARAM_READABLE |
+                                                       G_PARAM_WRITABLE |
+                                                       G_PARAM_CONSTRUCT_ONLY));
+
 
 	g_object_class_install_property(gobject_class,
                                    PROP_DAEMON,
@@ -165,19 +198,22 @@ gadget_function_manager_class_init(GadgetFunctionManagerClass *klass)
  * @brief gadget function manager new
  * @details Create a new GadgetFunctionManager instance
  * @param[in] daemon GadgetDaemon
+ * @param[in] gadget_path Path where gadget is exported
  * @param[in] gadget Pointer to gadget
  * @return GadgetFunctionManager object neet to be free.
  */
 GadgetFunctionManager *
-gadget_function_manager_new(GadgetDaemon *daemon, struct gd_gadget *gadget)
+gadget_function_manager_new(GadgetDaemon *daemon, const gchar *gadget_path,
+			    struct gd_gadget *gadget)
 {
 	g_return_val_if_fail(gadget != NULL, NULL);
 
 	GadgetFunctionManager *object;
 
 	object = g_object_new(GADGET_TYPE_FUNCTION_MANAGER,
-			     "daemon", daemon,
-			     "gd_gadget", gadget,
+			      "daemon", daemon,
+			      "gadget_path", gadget_path,
+			      "gd_gadget", gadget,
 			      NULL);
 
 	return object;
@@ -232,9 +268,8 @@ handle_create_function(GadgetdGadgetFunctionManager	*object,
 		goto err;
 	}
 
-	function_path = g_strdup_printf("%s/%s/Function/%s/%s",
-					gadgetd_path,
-					gadget_name,
+	function_path = g_strdup_printf("%s/Function/%s/%s",
+					func_manager->gadget_path,
 					type,
 					instance);
 
@@ -247,7 +282,7 @@ handle_create_function(GadgetdGadgetFunctionManager	*object,
 	if (ret != GD_SUCCESS)
 		goto err;
 
-	function_object = gadgetd_function_object_new(gadget_name, instance,
+	function_object = gadgetd_function_object_new(function_path, instance,
 						      type, func->f);
 	if (function_object == NULL) {
 		msg = "Unable to create function object";

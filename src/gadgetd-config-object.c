@@ -34,7 +34,7 @@ struct _GadgetdConfigObject
 {
 	GadgetdObjectSkeleton parent_instance;
 
-	gchar *gadget_name;
+	gchar *config_path;
 	gint  config_id;
 	gchar *config_label;
 
@@ -55,7 +55,7 @@ enum
 	PROP_CFG_OBJ_LABEL,
 	PROP_CFG_OBJ_ID,
 	PROP_CFG_PTR,
-	PROP_GADGET_NAME
+	PROP_CFG_PATH
 } prop_cfg_obj;
 
 /**
@@ -67,7 +67,7 @@ gadgetd_config_object_finalize(GObject *object)
 {
 	GadgetdConfigObject *config_object = GADGETD_CONFIG_OBJECT(object);
 
-	g_free(config_object->gadget_name);
+	g_free(config_object->config_path);
 	g_free(config_object->config_label);
 
 	if (G_OBJECT_CLASS(gadgetd_config_object_parent_class)->finalize != NULL)
@@ -137,9 +137,9 @@ gadgetd_config_object_set_property(GObject            *object,
 		g_assert(config_object->cfg == NULL);
 		config_object->cfg = g_value_get_pointer(value);
 		break;
-	case PROP_GADGET_NAME:
-		g_assert(config_object->gadget_name == NULL);
-		config_object->gadget_name = g_value_dup_string(value);
+	case PROP_CFG_PATH:
+		g_assert(config_object->config_path == NULL);
+		config_object->config_path = g_value_dup_string(value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
@@ -165,16 +165,13 @@ static void
 gadgetd_config_object_constructed(GObject *object)
 {
 	GadgetdConfigObject *config_object = GADGETD_CONFIG_OBJECT(object);
-	gchar _cleanup_g_free_ *path = NULL;
-
-	path = g_strdup_printf("%s/%s/Config/%d",
-				gadgetd_path,
-				config_object->gadget_name,
-				config_object->config_id);
+	gchar *path = config_object->config_path;
 
 	config_object->gadget_cfg_iface = gadget_config_new(config_object->cfg);
 
-	get_iface(G_OBJECT(config_object),GADGETD_TYPE_CONFIG_OBJECT, &config_object->gadget_cfg_iface);
+	get_iface(G_OBJECT(config_object),
+		  GADGETD_TYPE_CONFIG_OBJECT,
+		  &config_object->gadget_cfg_iface);
 
 	if (path != NULL && g_variant_is_object_path(path) && config_object != NULL)
 		g_dbus_object_skeleton_set_object_path(G_DBUS_OBJECT_SKELETON(config_object), path);
@@ -211,6 +208,7 @@ gadgetd_config_object_class_init(GadgetdConfigObjectClass *klass)
                                                      G_PARAM_READABLE |
                                                      G_PARAM_WRITABLE |
                                                      G_PARAM_CONSTRUCT_ONLY));
+
 	g_object_class_install_property(gobject_class,
                                    PROP_CFG_OBJ_LABEL,
                                    g_param_spec_string("config_label",
@@ -220,6 +218,7 @@ gadgetd_config_object_class_init(GadgetdConfigObjectClass *klass)
                                                        G_PARAM_READABLE |
                                                        G_PARAM_WRITABLE |
                                                        G_PARAM_CONSTRUCT_ONLY));
+
 	g_object_class_install_property(gobject_class,
                                    PROP_CFG_PTR,
                                    g_param_spec_pointer("config-pointer",
@@ -228,15 +227,17 @@ gadgetd_config_object_class_init(GadgetdConfigObjectClass *klass)
                                                        G_PARAM_READABLE |
                                                        G_PARAM_WRITABLE |
                                                        G_PARAM_CONSTRUCT_ONLY));
+
 	g_object_class_install_property(gobject_class,
-                                   PROP_GADGET_NAME,
-                                   g_param_spec_string("gadget_name",
-                                                       "Gadget name",
-                                                       "gadget name",
-                                                       NULL,
-                                                       G_PARAM_READABLE |
-                                                       G_PARAM_WRITABLE |
-                                                       G_PARAM_CONSTRUCT_ONLY));
+					PROP_CFG_PATH,
+					g_param_spec_string("config_path",
+							    "Config path",
+							    "config path",
+							    NULL,
+							    G_PARAM_READABLE |
+							    G_PARAM_WRITABLE |
+							    G_PARAM_CONSTRUCT_ONLY));
+
 }
 
 /**
@@ -245,16 +246,16 @@ gadgetd_config_object_class_init(GadgetdConfigObjectClass *klass)
  * @return GadgetdConfigObject object
  */
 GadgetdConfigObject *
-gadgetd_config_object_new(const gchar *gadget_name, gint config_id, const gchar *config_label,
+gadgetd_config_object_new(const gchar *config_path, gint config_id, const gchar *config_label,
 			  usbg_config *cfg)
 {
-	g_return_val_if_fail(gadget_name  != NULL, NULL);
+	g_return_val_if_fail(config_path  != NULL, NULL);
 	g_return_val_if_fail(config_id    != FALSE, NULL);
 	g_return_val_if_fail(config_label != NULL, NULL);
 
 	GadgetdConfigObject *object;
 	object = g_object_new(GADGETD_TYPE_CONFIG_OBJECT,
-			     "gadget_name",  gadget_name,
+			     "config_path",  config_path,
 			     "config_id",    config_id,
 			     "config_label", config_label,
 			     "config-pointer", cfg,

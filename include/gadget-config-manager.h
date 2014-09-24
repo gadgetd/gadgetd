@@ -35,7 +35,9 @@ typedef struct _GadgetConfigManager GadgetConfigManager;
 #define GADGET_IS_CONFIG_MANAGER(o)	(G_TYPE_CHECK_INSTANCE_TYPE ((o), GADGET_TYPE_CONFIG_MANAGER))
 
 GType                gadget_config_manager_get_type (void) G_GNUC_CONST;
-GadgetConfigManager *gadget_config_manager_new      (GadgetDaemon *daemon, struct gd_gadget *gadget);
+GadgetConfigManager *gadget_config_manager_new      (GadgetDaemon *daemon,
+						     const gchar *gadget_path,
+						     struct gd_gadget *gadget);
 
 G_END_DECLS
 
