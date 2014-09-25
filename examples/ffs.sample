@@ -1,0 +1,58 @@
+activation_event = "FUNCTIONFS_ENABLE";
+exec = "/usr/local/bin/ffs-service-example";
+
+allow_multiple = true;
+allow_concurent = 1;
+
+descriptors = {
+	fs_desc = (
+		{
+			type = "INTERFACE_DESC";
+			bInterfaceClass = "USB_CLASS_VENDOR_SPEC";
+			iInterface = 1;
+		} ,
+		 {
+			type = "EP_NO_AUDIO_DESC";
+			address = 1;
+			direction = "in";
+			bmAttributes = "USB_ENDPOINT_XFER_BULK"
+		},
+		 {
+			type = "EP_NO_AUDIO_DESC";
+			address = 2;
+			direction = "out";
+			bmAttributes = "USB_ENDPOINT_XFER_BULK"
+		}
+
+	)
+
+        hs_desc = (
+                {
+                        type = "INTERFACE_DESC";
+                        bInterfaceClass = "USB_CLASS_VENDOR_SPEC";
+                        iInterface = 1;
+                } ,
+                 {
+                        type = "EP_NO_AUDIO_DESC";
+                        address = 1;
+                        direction = "in";
+                        bmAttributes = "USB_ENDPOINT_XFER_BULK"
+                },
+                 {
+                        type = "EP_NO_AUDIO_DESC";
+                        address = 2;
+                        direction = "out";
+                        bmAttributes = "USB_ENDPOINT_XFER_BULK"
+                }
+
+        )
+
+}
+
+strings = (
+	{
+		lang = 0x409;
+		str = "FFS-inet example";
+	}
+)
+

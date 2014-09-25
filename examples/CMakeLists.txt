@@ -28,3 +28,7 @@ TARGET_LINK_LIBRARIES(ffs-host-example ${LIBUSB_LDFLAGS})
 
 INSTALL(TARGETS ffs-host-example DESTINATION ${BINDIR})
 INSTALL(TARGETS ffs-service-example DESTINATION ${BINDIR})
+INSTALL(FILES ffs.sample
+        DESTINATION "/etc/gadgetd/functions.d"
+        RENAME ffs.sample.example)
+

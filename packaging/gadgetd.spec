@@ -76,3 +76,5 @@ make
 %files -n libffs-daemon-examples
 /usr/local/bin/ffs-host-example
 /usr/local/bin/ffs-service-example
+/etc/gadgetd/functions.d/ffs.sample.example
+
