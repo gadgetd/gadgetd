@@ -17,6 +17,7 @@
 
 #include "gadgetd-core-func.h"
 #include "gadgetd-introspection.h"
+#include "gadgetd-ffs-func.h"
 
 struct gd_kernel_func_type {
 	int func_type;

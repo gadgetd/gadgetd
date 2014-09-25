@@ -31,7 +31,7 @@ IF(BUILD_EXECUTABLE)
 		src/gadgetd-common.c
 		src/gadgetd-introspection.c
 		src/strdelim.c
-		src/ffs-service.c
+		src/gadgetd-ffs-func.c
 		src/gadget-daemon.c
 		src/gadget-manager.c
 		src/gadgetd-gadget-object.c

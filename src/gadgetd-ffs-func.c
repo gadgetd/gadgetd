@@ -31,7 +31,7 @@
 #include <errno.h>
 #include <assert.h>
 
-#include "ffs-service.h"
+#include "gadgetd-ffs-func.h"
 #include "common.h"
 
 struct gd_ffs_func_type *

@@ -18,7 +18,7 @@
 #define GADGETD_INTROSPECTION_H
 
 #include <glib.h>
-#include <ffs-service.h>
+#include "gadgetd-ffs-func.h"
 
 /**
  * @brief Gets list of avaible usb functions
