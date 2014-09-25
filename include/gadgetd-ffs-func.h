@@ -103,7 +103,7 @@ void gd_unref_gd_ffs_func_type(struct gd_ffs_func_type *srv);
  * Creates instance of ffs service with given name
  * Service will be in state FFS_INSTANCE_MOUNTED
  */
-struct gd_ffs_func *gd_ffs_create_instance(struct gd_ffs_func_type *srv, char *name);
+int gd_ffs_prepare_instance(struct gd_ffs_func_type *srv, struct gd_ffs_func *func);
 
 /*
  * Informs instance that event has been received

@@ -165,74 +165,61 @@ umount_ffs_instance(char *path)
 
 }
 
-struct gd_ffs_func *
-gd_ffs_create_instance(struct gd_ffs_func_type *srv, char *name)
+int
+gd_ffs_prepare_instance(struct gd_ffs_func_type *srv, struct gd_ffs_func *func)
 {
-	struct gd_ffs_func *inst = NULL;
 	char ep0_file[PATH_MAX];
 	int ret = 0;
 
-	if (!srv || !name)
+	if (!srv || !func)
 		goto out;
 
-	inst = malloc(sizeof(*inst));
-	if (!inst)
+	func->service = gd_ref_gd_ffs_func_type(srv);
+	if (!func->service)
 		goto out;
 
-	memset(inst, 0, sizeof(*inst));
-	inst->func.instance = strdup(name);
-	if (!inst->func.instance)
-		goto err_inst;
-
-	inst->service = gd_ref_gd_ffs_func_type(srv);
-	if (!inst->service)
-		goto err_name;
-
-	inst->mount_dir = mount_ffs_instance(srv->reg_type.name, name);
-	if (!inst->mount_dir)
+	func->mount_dir = mount_ffs_instance(srv->reg_type.name,
+					     func->func.instance);
+	if (!func->mount_dir)
 		goto err_unref;
 
-	ret = snprintf(ep0_file, sizeof(ep0_file), "%s/ep0", inst->mount_dir);
+	ret = snprintf(ep0_file, sizeof(ep0_file), "%s/ep0", func->mount_dir);
 	if (ret < 0 || ret >= sizeof(ep0_file))
 		goto err_umount;
 
-	inst->ep0_fd = open(ep0_file, O_RDWR);
-	if (inst->ep0_fd < 0)
+	func->ep0_fd = open(ep0_file, O_RDWR);
+	if (func->ep0_fd < 0)
 		goto err_umount;
 
 	/* Write descriptors */
-	ret = write(inst->ep0_fd, inst->service->desc,
-		    inst->service->desc_size);
+	ret = write(func->ep0_fd, func->service->desc,
+		    func->service->desc_size);
 	if (ret < 0) {
 		ERRNO("Unable to write descriptors");
 		goto err_close;
 	}
 
 	/* Write strings */
-	ret = write(inst->ep0_fd, inst->service->str, inst->service->str_size);
+	ret = write(func->ep0_fd, func->service->str, func->service->str_size);
 	if (ret < 0) {
 		ERRNO("Umable to write strings");
 		goto err_close;
 	}
 
-	inst->state = FFS_INSTANCE_READY;
+	func->state = FFS_INSTANCE_READY;
 
 out:
-	return inst;
+	return GD_SUCCESS;
 
 err_close:
-	close(inst->ep0_fd);
-	inst->ep0_fd = -1;
+	close(func->ep0_fd);
+	func->ep0_fd = -1;
 err_umount:
-	umount_ffs_instance(inst->mount_dir);
-	free(inst->mount_dir);
+	umount_ffs_instance(func->mount_dir);
+	free(func->mount_dir);
 err_unref:
-	gd_unref_gd_ffs_func_type(inst->service);
-err_name:
-	free(inst->func.instance);
-err_inst:
-	free(inst);
-	return NULL;
+	gd_unref_gd_ffs_func_type(func->service);
+	return GD_ERROR_OTHER_ERROR;
 }
 
 static char **
