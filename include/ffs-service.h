@@ -85,8 +85,8 @@ enum ffs_instance_state {
 	FFS_INSTANCE_RUNNING
 };
 
-struct ffs_instance {
-	char *name;
+struct gd_ffs_func {
+	struct gd_function func;
 	char *mount_dir;
 	int ep0_fd;
 
@@ -103,7 +103,7 @@ void gd_unref_gd_ffs_func_type(struct gd_ffs_func_type *srv);
  * Creates instance of ffs service with given name
  * Service will be in state FFS_INSTANCE_MOUNTED
  */
-struct ffs_instance *gd_ffs_create_instance(struct gd_ffs_func_type *srv, char *name);
+struct gd_ffs_func *gd_ffs_create_instance(struct gd_ffs_func_type *srv, char *name);
 
 /*
  * Informs instance that event has been received
@@ -111,7 +111,7 @@ struct ffs_instance *gd_ffs_create_instance(struct gd_ffs_func_type *srv, char *
  * Returns <0 if error occurred, 0 if event processed, pid of child if event
  * processed and service started
  */
-int gd_ffs_received_event(struct ffs_instance *inst,
+int gd_ffs_received_event(struct gd_ffs_func *inst,
 			  enum usb_functionfs_event_type type);
 
 /*

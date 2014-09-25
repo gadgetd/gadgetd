@@ -165,10 +165,10 @@ umount_ffs_instance(char *path)
 
 }
 
-struct ffs_instance *
+struct gd_ffs_func *
 gd_ffs_create_instance(struct gd_ffs_func_type *srv, char *name)
 {
-	struct ffs_instance *inst = NULL;
+	struct gd_ffs_func *inst = NULL;
 	char ep0_file[PATH_MAX];
 	int ret = 0;
 
@@ -180,8 +180,8 @@ gd_ffs_create_instance(struct gd_ffs_func_type *srv, char *name)
 		goto out;
 
 	memset(inst, 0, sizeof(*inst));
-	inst->name = strdup(name);
-	if (!inst->name)
+	inst->func.instance = strdup(name);
+	if (!inst->func.instance)
 		goto err_inst;
 
 	inst->service = gd_ref_gd_ffs_func_type(srv);
@@ -229,14 +229,14 @@ err_umount:
 err_unref:
 	gd_unref_gd_ffs_func_type(inst->service);
 err_name:
-	free(inst->name);
+	free(inst->func.instance);
 err_inst:
 	free(inst);
 	return NULL;
 }
 
 static char **
-prepare_args(struct ffs_instance *inst)
+prepare_args(struct gd_ffs_func *inst)
 {
 	char **args;
 	int size = 2;
@@ -265,7 +265,7 @@ error:
 }
 
 static char **
-prepare_environ(struct ffs_instance *inst, int n_fds)
+prepare_environ(struct gd_ffs_func *inst, int n_fds)
 {
 	pid_t pid;
 	int event;
@@ -492,7 +492,7 @@ ep_sort(const struct dirent **epa, const struct dirent **epb)
 }
 
 static int
-prepare_fds_table(struct ffs_instance *inst, int **fdsp)
+prepare_fds_table(struct gd_ffs_func *inst, int **fdsp)
 {
 	struct dirent **ep;
 	int *fds;
@@ -552,7 +552,7 @@ error:
 }
 
 static int
-setup_child(struct ffs_instance *inst)
+setup_child(struct gd_ffs_func *inst)
 {
 	int *fds;
 	int n_fds, ret, i;
@@ -597,7 +597,7 @@ err:
 }
 
 static int
-run_ffs_instance(struct ffs_instance *inst)
+run_ffs_instance(struct gd_ffs_func *inst)
 {
 	int ret;
 
@@ -618,7 +618,7 @@ run_ffs_instance(struct ffs_instance *inst)
 }
 
 int
-gd_ffs_received_event(struct ffs_instance *inst,
+gd_ffs_received_event(struct gd_ffs_func *inst,
 			  enum usb_functionfs_event_type type)
 {
 	int ret = -1;
