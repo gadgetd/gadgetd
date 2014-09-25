@@ -200,6 +200,118 @@ error:
 	return ret;
 }
 
+static int
+gd_create_ffs_func(struct gd_gadget *g, struct gd_function_type *t,
+		   const char *instance, struct gd_function **function)
+{
+	struct gd_ffs_func_type *type;
+	int usbg_ret;
+	int ret;
+	struct gd_ffs_func *func = NULL;
+	struct gd_function *f;
+
+	type = container_of(t, struct gd_ffs_func_type, reg_type);
+	func = g_malloc(sizeof(*func));
+	if (!func) {
+		ret = USBG_ERROR_NO_MEM;
+		goto out;
+	}
+
+	f = &(func->func);
+	f->instance = g_strdup(instance);
+	f->type = g_strdup(t->name);
+
+	if (!f->instance || !f->type) {
+		ret = USBG_ERROR_NO_MEM;
+		goto error;
+	}
+
+	usbg_ret = usbg_create_function(g->g, F_FFS,
+					instance, NULL, &(f->f));
+	if (usbg_ret != USBG_SUCCESS) {
+		ret = usbg_ret;
+		goto error;
+	}
+
+	ret = gd_ffs_prepare_instance(type, func);
+	if (ret) {
+		usbg_rm_function(f->f, USBG_RM_RECURSE);
+		goto error;
+	}
+
+	*function = f;
+	f->parent = g;
+	f->function_group = t->function_group;
+	g->funcs = g_list_append(g->funcs, f);
+	ret = GD_SUCCESS;
+out:
+	return ret;
+error:
+	g_free(f->instance);
+	g_free(f->type);
+	g_free(f);
+	return ret;
+}
+
+static int
+gd_rm_ffs_func(struct gd_function *f)
+{
+	ERROR("Not implemented yet");
+	return 0;
+}
+
+static int
+gd_cleanup_ffs_func_type(struct gd_function_type *t)
+{
+	struct gd_ffs_func_type *type;
+
+	type = container_of(t, struct gd_ffs_func_type, reg_type);
+	gd_unref_gd_ffs_func_type(type);
+	return 0;
+}
+
+
+static int
+gd_register_user_funcs()
+{
+	struct gd_ffs_func_type **types;
+	struct gd_ffs_func_type *t;
+	int i = 0;
+	int ret;
+
+	/* TODO Check if ffs is available */
+	ret = gd_read_gd_ffs_func_types(&types);
+	if (ret != GD_SUCCESS)
+		goto out;
+
+	for (t = types[i]; t; t = types[++i]) {
+		/* We have almost filled the type structure
+		 * we only need to fill callbacks
+		 */
+		t->reg_type.create_instance = gd_create_ffs_func;
+		t->reg_type.rm_instance = gd_rm_ffs_func;
+		t->reg_type.on_unregister = gd_cleanup_ffs_func_type;
+		ret = gd_register_func_t(&(t->reg_type));
+		if (ret != GD_SUCCESS) {
+			ERROR("Unable to register func: %s", t->reg_type.name);
+			t->cleanup(t);
+			goto error;
+		}
+		/* We don't free type because it will be freed
+		 * while unregistering function type or on exit
+		 */
+
+	}
+out:
+	return ret;
+error:
+	for (; t; t = types[++i])
+		t->cleanup(t);
+	free(types);
+
+	return ret;
+}
+
 int
 gd_init_functions()
 {
@@ -207,8 +319,17 @@ gd_init_functions()
 
 	ret = gd_register_kernel_funcs();
 	if (ret != GD_SUCCESS)
-		gd_unregister_all_func_t();
+		goto error;
 
+
+	ret = gd_register_user_funcs();
+	if (ret != GD_SUCCESS)
+		goto error;
+
+	return ret;
+
+ error:
+	gd_unregister_all_func_t();
 	return ret;
 }
 
