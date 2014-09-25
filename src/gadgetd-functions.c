@@ -32,7 +32,7 @@ gd_create_kernel_func(struct gd_gadget *g,
 	struct gd_kernel_func_type *type;
 	int usbg_ret;
 	int ret;
-	struct gd_function *func;
+	struct gd_function *func = NULL;
 
 	type = container_of(t, struct gd_kernel_func_type, reg_type);
 	func = g_malloc(sizeof(*func));
@@ -41,11 +41,19 @@ gd_create_kernel_func(struct gd_gadget *g,
 		goto out;
 	}
 
+	func->instance = g_strdup(instance);
+	func->type = g_strdup(t->name);
+
+	if (!func->instance || !func->type) {
+		ret = USBG_ERROR_NO_MEM;
+		goto error;
+	}
+
 	usbg_ret = usbg_create_function(g->g, type->func_type,
 					instance, NULL, &(func->f));
 	if (usbg_ret != USBG_SUCCESS) {
 		ret = usbg_ret;
-		goto out;
+		goto error;
 	}
 
 	*f = func;
@@ -54,6 +62,11 @@ gd_create_kernel_func(struct gd_gadget *g,
 	g->funcs = g_list_append(g->funcs, func);
 	ret = GD_SUCCESS;
 out:
+	return ret;
+error:
+	g_free(func->instance);
+	g_free(func->type);
+	g_free(func);
 	return ret;
 }
 
@@ -70,6 +83,8 @@ gd_rm_kernel_func(struct gd_function *f)
 		goto out;
 
 	f->parent->funcs = g_list_remove(f->parent->funcs, f);
+	g_free(f->instance);
+	g_free(f->type);
 	g_free(f);
 out:
 	return usbg_ret;
