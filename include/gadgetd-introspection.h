@@ -30,23 +30,23 @@
 int gd_list_functions(gchar ***dest);
 
 /**
- * @brief Parse given config file into ffs_service structure
+ * @brief Parse given config file into gd_ffs_func_type structure
  * @param[in] path Path to configuration file
  * @param[out] service Pointer to destination service
  * @param[in] destroy_at_cleanup if zero, service will not be freed by its
  * cleanup function
  * @return Error code if failed or GD_SUCCESS if succeed
  **/
-int gd_read_ffs_service(const char *path, struct ffs_service *service,
+int gd_read_gd_ffs_func_type(const char *path, struct gd_ffs_func_type *service,
 		int destroy_at_cleanup);
 
 /**
- * @brief Parse all files from given directory into ffs_service structures.
+ * @brief Parse all files from given directory into gd_ffs_func_type structures.
  * @param[in] path Directory path
  * @param[out] srvs Pointer to null-terminated list of pointers to created
  * structures
  * @return number of elements on srvs list
  **/
-int gd_ffs_services_from_dir(const char *path, struct ffs_service ***srvs);
+int gd_read_gd_ffs_func_types_from_dir(const char *path, struct gd_ffs_func_type ***srvs);
 
 #endif /* GADGETD_INTROSPECTION_H */

@@ -1,5 +1,5 @@
 /*
- * ffs-service.h
+ * gadgetd-ffs-func-type.h
  * Copyright (c) 2012-2014 Samsung Electronics Co., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,13 +15,15 @@
  * limitations under the License.
  */
 
-#ifndef FFS_SERVICE_H
-#define FFS_SERVICE_H
+#ifndef GADGETD_FFS_FUNC_TYPE
+#define GADGETD_FFS_FUNC_TYPE
 
 #include <unistd.h>
 #include <sys/types.h>
 
 #include <linux/usb/functionfs.h>
+
+#include <gadgetd-core-func.h>
 
 enum ffs_service_options {
 	FFS_SERVICE_ALLOW_MULTIPLE = 1,
@@ -54,8 +56,8 @@ struct ffs_str_per_lang {
 } __attribute__ ((__packed__));
 
 /* Currently only exec is done, rest is TODO */
-struct ffs_service {
-	char *name;
+struct gd_ffs_func_type {
+	struct gd_function_type reg_type;
 	char *exec_path;
 	char *work_dir;
 	char *chroot_dir;
@@ -73,7 +75,7 @@ struct ffs_service {
 	void *str;
 	int str_size;
 
-	void (*cleanup)(struct ffs_service *);
+	void (*cleanup)(struct gd_ffs_func_type *);
 };
 
 enum ffs_instance_state {
@@ -88,20 +90,20 @@ struct ffs_instance {
 	char *mount_dir;
 	int ep0_fd;
 
-	struct ffs_service *service;
+	struct gd_ffs_func_type *service;
 	enum ffs_instance_state state;
 	pid_t pid;
 };
 
-struct ffs_service *gd_ref_ffs_service(struct ffs_service *srv);
+struct gd_ffs_func_type *gd_ref_gd_ffs_func_type(struct gd_ffs_func_type *srv);
 
-void gd_unref_ffs_service(struct ffs_service *srv);
+void gd_unref_gd_ffs_func_type(struct gd_ffs_func_type *srv);
 
 /*
  * Creates instance of ffs service with given name
  * Service will be in state FFS_INSTANCE_MOUNTED
  */
-struct ffs_instance *gd_ffs_create_instance(struct ffs_service *srv, char *name);
+struct ffs_instance *gd_ffs_create_instance(struct gd_ffs_func_type *srv, char *name);
 
 /*
  * Informs instance that event has been received
@@ -113,20 +115,20 @@ int gd_ffs_received_event(struct ffs_instance *inst,
 			  enum usb_functionfs_event_type type);
 
 /*
- * Fills ffs_service with given descriptors
+ * Fills gd_ffs_func_type with given descriptors
  */
-int gd_ffs_fill_desc(struct ffs_service *srv, struct ffs_desc_per_seed *desc,
+int gd_ffs_fill_desc(struct gd_ffs_func_type *srv, struct ffs_desc_per_seed *desc,
 		     int desc_mask);
 
 /* Cleans up memory allocated for descriptors */
-void gd_ffs_put_desc(struct ffs_service *srv);
+void gd_ffs_put_desc(struct gd_ffs_func_type *srv);
 
 /*
- * Fills ffs_service with given strings
+ * Fills gd_ffs_func_type with given strings
  */
-int gd_ffs_fill_str(struct ffs_service *srv, struct ffs_str_per_lang *str,
+int gd_ffs_fill_str(struct gd_ffs_func_type *srv, struct ffs_str_per_lang *str,
 		    int lang_nmb, int str_nmb);
 
-void gd_ffs_put_str(struct ffs_service *srv);
+void gd_ffs_put_str(struct gd_ffs_func_type *srv);
 
-#endif /* FFS_SERVICE_H */
+#endif /* GADGETD_FFS_FUNC_TYPE */

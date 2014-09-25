@@ -834,7 +834,7 @@ gd_ffs_lookup_options(config_setting_t *root, int *opt)
 }
 
 static int
-gd_ffs_fill_str_config(config_setting_t *root, struct ffs_service *srv)
+gd_ffs_fill_str_config(config_setting_t *root, struct gd_ffs_func_type *srv)
 {
 	config_setting_t *list;
 	config_setting_t *group;
@@ -1170,7 +1170,7 @@ out:
 }
 
 static int
-gd_ffs_fill_desc_config(config_setting_t *root, struct ffs_service *srv)
+gd_ffs_fill_desc_config(config_setting_t *root, struct gd_ffs_func_type *srv)
 {
 	config_setting_t *fs_desc;
 	config_setting_t *hs_desc;
@@ -1229,27 +1229,27 @@ gd_ffs_fill_desc_config(config_setting_t *root, struct ffs_service *srv)
 }
 
 static void
-gd_ffs_service_cleanup(struct ffs_service *srv)
+gd_gd_ffs_func_type_cleanup(struct gd_ffs_func_type *srv)
 {
 	if (srv == NULL)
 		return;
 	gd_ffs_put_desc(srv);
 	gd_ffs_put_str(srv);
-	free(srv->name);
+	free((char *)srv->reg_type.name);
 	free(srv->exec_path);
 	free(srv->work_dir);
 	free(srv->chroot_dir);
 }
 
 static void
-gd_ffs_service_destroy(struct ffs_service *srv)
+gd_gd_ffs_func_type_destroy(struct gd_ffs_func_type *srv)
 {
-	gd_ffs_service_cleanup(srv);
+	gd_gd_ffs_func_type_cleanup(srv);
 	free(srv);
 }
 
 int
-gd_read_ffs_service(const char *path, struct ffs_service *srv,
+gd_read_gd_ffs_func_type(const char *path, struct gd_ffs_func_type *srv,
 		int destroy_at_cleanup)
 {
 	config_t cfg;
@@ -1279,12 +1279,12 @@ gd_read_ffs_service(const char *path, struct ffs_service *srv,
 
 	memset(srv, 0, sizeof(*srv));
 	if (destroy_at_cleanup)
-		srv->cleanup = gd_ffs_service_destroy;
+		srv->cleanup = gd_gd_ffs_func_type_destroy;
 	else
-		srv->cleanup = gd_ffs_service_cleanup;
+		srv->cleanup = gd_gd_ffs_func_type_cleanup;
 
-	srv->name = strdup(base);
-	if(srv->name == NULL)
+	srv->reg_type.name = strdup(base);
+	if(srv->reg_type.name == NULL)
 		goto out;
 
 	root = config_root_setting(&cfg);
@@ -1344,7 +1344,7 @@ gd_example_file_filter(const struct dirent *dir)
 }
 
 int
-gd_ffs_services_from_dir(const char *path, struct ffs_service ***srvs)
+gd_read_gd_ffs_func_types_from_dir(const char *path, struct gd_ffs_func_type ***srvs)
 {
 	struct dirent **namelist;
 	int num;
@@ -1352,7 +1352,7 @@ gd_ffs_services_from_dir(const char *path, struct ffs_service ***srvs)
 	int tmp;
 	int pathlen, namelen;
 	char filepath[PATH_MAX];
-	struct ffs_service *srv;
+	struct gd_ffs_func_type *srv;
 
 	if (path == NULL || srvs == NULL)
 		return GD_ERROR_INVALID_PARAM;
@@ -1364,7 +1364,7 @@ gd_ffs_services_from_dir(const char *path, struct ffs_service ***srvs)
 		return tmp;
 	}
 
-	*srvs = calloc(num + 1, sizeof(struct ffs_service *));
+	*srvs = calloc(num + 1, sizeof(struct gd_ffs_func_type *));
 	if (*srvs == NULL) {
 		tmp = GD_ERROR_NO_MEM;
 		goto out;
@@ -1394,7 +1394,7 @@ gd_ffs_services_from_dir(const char *path, struct ffs_service ***srvs)
 			goto out;
 		}
 
-		tmp = gd_read_ffs_service(filepath, srv, 1);
+		tmp = gd_read_gd_ffs_func_type(filepath, srv, 1);
 		if (tmp < 0) {
 			ERROR("%s: file parsing failed", filepath);
 			goto out;

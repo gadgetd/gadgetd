@@ -34,10 +34,10 @@
 #include "ffs-service.h"
 #include "common.h"
 
-struct ffs_service *
-gd_ref_ffs_service(struct ffs_service *srv)
+struct gd_ffs_func_type *
+gd_ref_gd_ffs_func_type(struct gd_ffs_func_type *srv)
 {
-	struct ffs_service *ret = NULL;
+	struct gd_ffs_func_type *ret = NULL;
 	if (!srv)
 		goto out;
 
@@ -52,7 +52,7 @@ out:
 }
 
 void
-gd_unref_ffs_service(struct ffs_service *srv)
+gd_unref_gd_ffs_func_type(struct gd_ffs_func_type *srv)
 {
 	if (srv && --(srv->refcnt) == 0) {
 		if (srv->cleanup)
@@ -166,7 +166,7 @@ umount_ffs_instance(char *path)
 }
 
 struct ffs_instance *
-gd_ffs_create_instance(struct ffs_service *srv, char *name)
+gd_ffs_create_instance(struct gd_ffs_func_type *srv, char *name)
 {
 	struct ffs_instance *inst = NULL;
 	char ep0_file[PATH_MAX];
@@ -184,11 +184,11 @@ gd_ffs_create_instance(struct ffs_service *srv, char *name)
 	if (!inst->name)
 		goto err_inst;
 
-	inst->service = gd_ref_ffs_service(srv);
+	inst->service = gd_ref_gd_ffs_func_type(srv);
 	if (!inst->service)
 		goto err_name;
 
-	inst->mount_dir = mount_ffs_instance(srv->name, name);
+	inst->mount_dir = mount_ffs_instance(srv->reg_type.name, name);
 	if (!inst->mount_dir)
 		goto err_unref;
 
@@ -227,7 +227,7 @@ err_umount:
 	umount_ffs_instance(inst->mount_dir);
 	free(inst->mount_dir);
 err_unref:
-	gd_unref_ffs_service(inst->service);
+	gd_unref_gd_ffs_func_type(inst->service);
 err_name:
 	free(inst->name);
 err_inst:
@@ -654,7 +654,7 @@ out:
 }
 
 int
-gd_ffs_fill_desc(struct ffs_service *srv, struct ffs_desc_per_seed *desc,
+gd_ffs_fill_desc(struct gd_ffs_func_type *srv, struct ffs_desc_per_seed *desc,
 		 int desc_mask)
 {
 #ifdef __FFS_LEGACY_API_SUPPORT
@@ -726,7 +726,7 @@ out:
 }
 
 void
-gd_ffs_put_desc(struct ffs_service *srv)
+gd_ffs_put_desc(struct gd_ffs_func_type *srv)
 {
 	free(srv->desc);
 	srv->desc = NULL;
@@ -734,7 +734,7 @@ gd_ffs_put_desc(struct ffs_service *srv)
 }
 
 int
-gd_ffs_fill_str(struct ffs_service *srv, struct ffs_str_per_lang *str,
+gd_ffs_fill_str(struct gd_ffs_func_type *srv, struct ffs_str_per_lang *str,
 		    int lang_nmb, int str_nmb)
 {
 	struct usb_functionfs_strings_head *header;
@@ -779,7 +779,7 @@ out:
 }
 
 void
-gd_ffs_put_str(struct ffs_service *srv)
+gd_ffs_put_str(struct gd_ffs_func_type *srv)
 {
 	free(srv->str);
 	srv->str = NULL;
