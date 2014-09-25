@@ -1284,6 +1284,7 @@ gd_read_gd_ffs_func_type(const char *path, struct gd_ffs_func_type *srv,
 	else
 		srv->cleanup = gd_gd_ffs_func_type_cleanup;
 
+	srv->refcnt = 1;
 	srv->reg_type.name = strdup(base);
 	if(srv->reg_type.name == NULL)
 		goto out;
