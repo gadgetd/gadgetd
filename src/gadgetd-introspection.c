@@ -985,10 +985,8 @@ gd_lookup_desc_interface_subclass(config_setting_t *root, __u8 *cl)
 	config_setting_t *node;
 
 	node = config_setting_get_member(root, "bInterfaceSubClass");
-	if (node == NULL) {
-		ERROR("No subclass was defined");
+	if (node == NULL)
 		return GD_ERROR_NOT_FOUND;
-	}
 
 	if (config_setting_type(node) == CONFIG_TYPE_INT) {
 		res = config_setting_get_int(node);
@@ -1022,8 +1020,11 @@ gd_ffs_parse_interface_desc(config_setting_t *root,
 	if (tmp < 0)
 		return tmp;
 	tmp = gd_lookup_desc_interface_subclass(root, &desc->bInterfaceSubClass);
-	if (tmp < 0)
+	if (tmp < 0 && tmp != GD_ERROR_NOT_FOUND)
 		return tmp;
+	else if (tmp == GD_ERROR_NOT_FOUND)
+		desc->bInterfaceSubClass = 0;
+
 	node = config_setting_get_member(root, "iInterface");
 	if (node == NULL) {
 		ERROR("iInterface not defined");
