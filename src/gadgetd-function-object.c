@@ -28,6 +28,7 @@
 #include <gadgetd-common.h>
 #include <gadget-function-manager.h>
 #include <dbus-function-ifaces/gadgetd-serial-function-iface.h>
+#include <dbus-function-ifaces/gadgetd-function-iface.h>
 
 typedef struct _GadgetdFunctionObjectClass   GadgetdFunctionObjectClass;
 
@@ -39,6 +40,7 @@ struct _GadgetdFunctionObject
 	gchar *function_path;
 
 	FunctionSerialAttrs *f_serial_attrs_iface;
+	FunctionAttrs *f_attrs_iface;
 };
 
 struct _GadgetdFunctionObjectClass
@@ -53,7 +55,7 @@ enum
 {
 	PROP_0,
 	PROP_FUNC_PTR,
-	PROP_FUNC_PATH
+	PROP_FUNC_PATH,
 } prop_func_obj;
 
 /**
@@ -69,6 +71,9 @@ gadgetd_function_object_finalize(GObject *object)
 
 	if (function_object->f_serial_attrs_iface != NULL)
 		g_object_unref(function_object->f_serial_attrs_iface);
+
+	if (function_object->f_attrs_iface != NULL)
+		g_object_unref(function_object->f_attrs_iface);
 
 	if (G_OBJECT_CLASS(gadgetd_function_object_parent_class)->finalize != NULL)
 		G_OBJECT_CLASS(gadgetd_function_object_parent_class)->finalize(object);
@@ -157,6 +162,10 @@ gadgetd_function_object_init(GadgetdFunctionObject *object)
 static void
 gadgetd_function_object_add_interface(int group, GadgetdFunctionObject *function_object)
 {
+	/* add generic interface */
+	function_object->f_attrs_iface = function_attrs_new(function_object->func);
+	get_iface(G_OBJECT(function_object),FUNCTION_TYPE_ATTRS, &function_object->f_attrs_iface);
+
 	switch (group) {
 	case FUNC_GROUP_OTHER:
 		ERROR("Function interface not implemented");
