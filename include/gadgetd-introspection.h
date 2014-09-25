@@ -49,4 +49,12 @@ int gd_read_gd_ffs_func_type(const char *path, struct gd_ffs_func_type *service,
  **/
 int gd_read_gd_ffs_func_types_from_dir(const char *path, struct gd_ffs_func_type ***srvs);
 
+/**
+ * @brief Gets all available ffs func types
+ * @param[out] func_types All ffs functions availble at this moment
+ * @return 0 on success, gd_error otherwise
+ */
+int gd_read_gd_ffs_func_types(struct gd_ffs_func_type ***func_types);
+
 #endif /* GADGETD_INTROSPECTION_H */
+

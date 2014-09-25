@@ -1412,3 +1412,15 @@ out:
 	*srvs = NULL;
 	return tmp;
 }
+
+int
+gd_read_gd_ffs_func_types(struct gd_ffs_func_type ***func_types)
+{
+	/* TODO move to configuration file? */
+	const char func_path[] = "/etc/gadgetd/functions.d/";
+	int ret;
+	ret = gd_read_gd_ffs_func_types_from_dir(func_path, func_types);
+
+	return ret >= 0 ? GD_SUCCESS : ret;
+}
+
