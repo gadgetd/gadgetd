@@ -22,6 +22,7 @@
 
 #include <gadgetd-gdbus-codegen.h>
 #include <dbus-config-ifaces/gadget-config.h>
+#include <gadgetd-function-object.h>
 
 #include <string.h>
 #ifdef G_OS_UNIX
@@ -208,10 +209,68 @@ handle_attach_function(GadgetdGadgetConfig	*object,
 			GDBusMethodInvocation	*invocation,
 			const gchar *function_path)
 {
-	/*TODO attach function*/
+	GadgetConfig *config = GADGET_CONFIG(object);
+	gint usbg_ret = USBG_SUCCESS;
+	_cleanup_g_free_ gchar *name = NULL;
+	const gchar *msg = NULL;
+	GVariant *result;
+	GadgetDaemon *daemon;
+	GDBusObjectManager *object_manager;
+	GadgetdFunctionObject *func_obj;
+	struct gd_function *gd_func;
+	usbg_config *cfg;
+
 	INFO("attach function handler");
 
+	daemon = gadgetd_config_object_get_daemon(config->cfg_object);
+	if (daemon == NULL) {
+		msg = "Failed to get daemon";
+		goto error;
+	}
+
+	object_manager = G_DBUS_OBJECT_MANAGER(gadget_daemon_get_object_manager(daemon));
+	if (object_manager == NULL) {
+		msg = "Failed to get object manager";
+		goto error;
+	}
+
+	func_obj = GADGETD_FUNCTION_OBJECT(g_dbus_object_manager_get_object(object_manager,
+									       function_path));
+	if (func_obj == NULL) {
+		msg = "Failed to get function object";
+		goto error;
+	}
+
+	gd_func = gadgetd_function_object_get_function(func_obj);
+	if (gd_func == NULL) {
+		msg = "Failed to get function";
+		goto error;
+	}
+
+	cfg = gadgetd_config_object_get_config(config->cfg_object);
+	if (cfg == NULL) {
+		msg = "Failed to get config";
+		goto error;
+	}
+
+	name = g_strdup_printf("%s.%s", gd_func->type, gd_func->instance);
+
+	usbg_ret = usbg_add_config_function(cfg, name, gd_func->f);
+	if (usbg_ret != USBG_SUCCESS) {
+		msg = "Unable to attach function";
+		goto error;
+	}
+
+	result = g_variant_new("(b)", TRUE);
+	g_dbus_method_invocation_return_value(invocation, result);
+
 	return TRUE;
+error:
+	ERROR("%s", msg);
+	result = g_variant_new("(b)", FALSE);
+	g_dbus_method_invocation_return_value(invocation, result);
+
+	return FALSE;
 }
 
 /**

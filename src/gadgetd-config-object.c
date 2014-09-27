@@ -33,6 +33,7 @@ typedef struct _GadgetdConfigObjectClass   GadgetdConfigObjectClass;
 struct _GadgetdConfigObject
 {
 	GadgetdObjectSkeleton parent_instance;
+	GadgetDaemon *daemon;
 
 	gchar *config_path;
 	gint  config_id;
@@ -55,7 +56,8 @@ enum
 	PROP_CFG_OBJ_LABEL,
 	PROP_CFG_OBJ_ID,
 	PROP_CFG_PTR,
-	PROP_CFG_PATH
+	PROP_CFG_PATH,
+	PROP_DAEMON,
 } prop_cfg_obj;
 
 /**
@@ -86,6 +88,17 @@ gadgetd_config_object_get_config(GadgetdConfigObject *config_object)
 	return config_object->cfg;
 }
 
+/**
+ * @brief Gets the daemon
+ * @param[in] object GadgetdConfigObject
+ * @return GadgetDaemon, dont free
+ */
+GadgetDaemon *
+gadgetd_config_object_get_daemon(GadgetdConfigObject *config_object)
+{
+	g_return_val_if_fail(GADGETD_IS_CONFIG_OBJECT(config_object), NULL);
+	return config_object->daemon;
+}
 
 /**
  * @brief gadgetd config object get property.
@@ -140,6 +153,10 @@ gadgetd_config_object_set_property(GObject            *object,
 	case PROP_CFG_PATH:
 		g_assert(config_object->config_path == NULL);
 		config_object->config_path = g_value_dup_string(value);
+		break;
+	case PROP_DAEMON:
+		g_assert(config_object->daemon == NULL);
+		config_object->daemon = g_value_get_object(value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
@@ -237,6 +254,16 @@ gadgetd_config_object_class_init(GadgetdConfigObjectClass *klass)
 							    G_PARAM_READABLE |
 							    G_PARAM_WRITABLE |
 							    G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property(gobject_class,
+                                   PROP_DAEMON,
+                                   g_param_spec_object("daemon",
+                                                       "Daemon",
+                                                       "daemon for the object",
+                                                       GADGET_TYPE_DAEMON,
+                                                       G_PARAM_READABLE |
+                                                       G_PARAM_WRITABLE |
+                                                       G_PARAM_CONSTRUCT_ONLY |
+                                                       G_PARAM_STATIC_STRINGS));
 
 }
 
@@ -247,11 +274,12 @@ gadgetd_config_object_class_init(GadgetdConfigObjectClass *klass)
  */
 GadgetdConfigObject *
 gadgetd_config_object_new(const gchar *config_path, gint config_id, const gchar *config_label,
-			  usbg_config *cfg)
+			  usbg_config *cfg, GadgetDaemon *daemon)
 {
 	g_return_val_if_fail(config_path  != NULL, NULL);
 	g_return_val_if_fail(config_id    != FALSE, NULL);
 	g_return_val_if_fail(config_label != NULL, NULL);
+	g_return_val_if_fail(daemon != NULL, NULL);
 
 	GadgetdConfigObject *object;
 	object = g_object_new(GADGETD_TYPE_CONFIG_OBJECT,
@@ -259,6 +287,7 @@ gadgetd_config_object_new(const gchar *config_path, gint config_id, const gchar 
 			     "config_id",    config_id,
 			     "config_label", config_label,
 			     "config-pointer", cfg,
+			     "daemon",daemon,
 			      NULL);
 
 	return object;
