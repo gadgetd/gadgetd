@@ -252,6 +252,8 @@ handle_create_function(GadgetdGadgetFunctionManager	*object,
 	GadgetDaemon *daemon;
 	struct gd_gadget *gadget = func_manager->gadget;
 	const gchar *gadget_name = usbg_get_gadget_name(gadget->g);
+	gchar _cleanup_g_free_ *instance_path = NULL;
+	gchar _cleanup_g_free_ *type_path = NULL;
 	struct gd_function *func = NULL;
 	gint ret;
 
@@ -268,10 +270,22 @@ handle_create_function(GadgetdGadgetFunctionManager	*object,
 		goto err;
 	}
 
+	ret = make_valid_object_path_part(instance, &instance_path);
+	if (ret != GD_SUCCESS) {
+		msg = "Invalid instance name";
+		goto err;
+	}
+
+	ret = make_valid_object_path_part(type, &type_path);
+	if (ret != GD_SUCCESS) {
+		msg = "Invalid type name";
+		goto err;
+	}
+
 	function_path = g_strdup_printf("%s/Function/%s/%s",
 					func_manager->gadget_path,
-					type,
-					instance);
+					type_path,
+					instance_path);
 
 	if (function_path == NULL || !g_variant_is_object_path(function_path)) {
 		msg = "Invalid function instance or type";
