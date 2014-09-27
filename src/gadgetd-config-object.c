@@ -167,7 +167,7 @@ gadgetd_config_object_constructed(GObject *object)
 	GadgetdConfigObject *config_object = GADGETD_CONFIG_OBJECT(object);
 	gchar *path = config_object->config_path;
 
-	config_object->gadget_cfg_iface = gadget_config_new(config_object->cfg);
+	config_object->gadget_cfg_iface = gadget_config_new(config_object);
 
 	get_iface(G_OBJECT(config_object),
 		  GADGETD_TYPE_CONFIG_OBJECT,

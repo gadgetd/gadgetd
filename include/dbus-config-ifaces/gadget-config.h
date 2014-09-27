@@ -36,7 +36,7 @@ typedef struct _GadgetConfigClass	GadgetConfigClass;
 #define GADGET_IS_CONFIG(o)     (G_TYPE_CHECK_INSTANCE_TYPE ((o), GADGET_TYPE_CONFIG))
 
 GType gadget_config_get_type (void) G_GNUC_CONST;
-GadgetConfig *gadget_config_new(usbg_config *cfg);
+GadgetConfig *gadget_config_new(GadgetdConfigObject *cfg_object);
 G_END_DECLS
 
 #endif /* GADGET_CONFIG_H */

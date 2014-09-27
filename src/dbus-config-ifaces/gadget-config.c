@@ -31,8 +31,7 @@
 struct _GadgetConfig
 {
 	GadgetdGadgetConfigSkeleton parent_instance;
-
-	usbg_config *cfg;
+	GadgetdConfigObject *cfg_object;
 };
 
 struct _GadgetConfigClass
@@ -45,7 +44,7 @@ enum
 	PROP_0,
 	PROP_CFG_LABEL,
 	PROP_CFG_ID,
-	PROP_CFG_PTR
+	PROP_CFG_OBJ
 } prop_config_iface;
 
 static void gadget_config_iface_init(GadgetdGadgetConfigIface *iface);
@@ -74,9 +73,9 @@ gadget_config_set_property(GObject *object, guint property_id,
 	GadgetConfig *gadget_config = GADGET_CONFIG(object);
 
 	switch(property_id) {
-	case PROP_CFG_PTR:
-		g_assert(gadget_config->cfg == NULL);
-		gadget_config->cfg = g_value_get_pointer(value);
+	case PROP_CFG_OBJ:
+		g_assert(gadget_config->cfg_object == NULL);
+		gadget_config->cfg_object = g_value_get_object(value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
@@ -100,13 +99,16 @@ gadget_config_get_property(GObject *object, guint property_id, GValue *value,
 	GadgetConfig *gadget_config = GADGET_CONFIG(object);
 	int id;
 	const gchar *label;
+	usbg_config *cfg;
 
-	if (gadget_config->cfg == NULL)
+	cfg = gadgetd_config_object_get_config(gadget_config->cfg_object);
+
+	if (cfg == NULL)
 		return;
 
 	switch(property_id) {
 	case PROP_CFG_LABEL:
-		label = usbg_get_config_label(gadget_config->cfg);
+		label = usbg_get_config_label(cfg);
 		if (label == NULL) {
 			ERROR("Cant get function label");
 			return;
@@ -114,7 +116,7 @@ gadget_config_get_property(GObject *object, guint property_id, GValue *value,
 		g_value_set_string(value, label);
 		break;
 	case PROP_CFG_ID:
-		id = usbg_get_config_id(gadget_config->cfg);
+		id = usbg_get_config_id(cfg);
 		g_value_set_int(value, id);
 		break;
 	default:
@@ -157,13 +159,15 @@ gadget_config_class_init(GadgetConfigClass *klass)
 					"label");
 
 	g_object_class_install_property(gobject_class,
-                                   PROP_CFG_PTR,
-                                   g_param_spec_pointer("config-pointer",
-                                                       "config-pointer",
-                                                       "Pointer to config",
+                                   PROP_CFG_OBJ,
+                                   g_param_spec_object("config-object",
+                                                       "config object",
+                                                       "Config object",
+                                                       GADGETD_TYPE_CONFIG_OBJECT,
                                                        G_PARAM_READABLE |
                                                        G_PARAM_WRITABLE |
-                                                       G_PARAM_CONSTRUCT_ONLY));
+                                                       G_PARAM_CONSTRUCT_ONLY |
+                                                       G_PARAM_STATIC_STRINGS));
 }
 
 /**
@@ -172,13 +176,13 @@ gadget_config_class_init(GadgetConfigClass *klass)
  * @return #GadgetConfig object.
  */
 GadgetConfig *
-gadget_config_new(usbg_config *cfg)
+gadget_config_new(GadgetdConfigObject *cfg_object)
 {
-	g_return_val_if_fail(cfg != NULL, NULL);
+	g_return_val_if_fail(cfg_object != NULL, NULL);
 	GadgetConfig *object;
 
 	object = g_object_new(GADGET_TYPE_CONFIG,
-			     "config-pointer", cfg,
+			     "config-object", cfg_object,
 			      NULL);
 	return object;
 }
