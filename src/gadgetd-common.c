@@ -93,3 +93,34 @@ get_function_type(const gchar *_str_type, usbg_function_type *_type)
 
 	return FALSE;
 }
+
+gint
+make_valid_object_path_part(const gchar *str, char **path_part)
+{
+	gchar *buf;
+	char *current;
+
+	if (!str || str[0] == '\0')
+		return GD_ERROR_INVALID_PARAM;
+
+	buf = g_strdup(str);
+	if (!buf)
+		return GD_ERROR_NO_MEM;
+
+	for (current = buf; *current; ++current) {
+		if (g_ascii_isalnum(*current) || *current == '_')
+			continue;
+
+		if (*current == '/')
+			goto error;
+
+		*current = '_';
+	}
+
+	*path_part = buf;
+	return GD_SUCCESS;
+error:
+	g_free(buf);
+	return GD_ERROR_INVALID_PARAM;
+}
+

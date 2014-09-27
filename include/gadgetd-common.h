@@ -70,6 +70,17 @@ gboolean get_function_type(const gchar *_str_type, usbg_function_type *_type);
  **/
 int gd_translate_error(int error);
 
+/**
+ * @brief Makes part of object path from str
+ * @details Object path part may contain only [A-Z][a-z][0-9]_ characters.
+ * This functions replaces all other characters in given string with _.
+ * / Character is reserved for path parts separation and in can not be used in str
+ * @param[in] str Str to make path part from it
+ * @param[out] path_part Valid part of path. Should be freed by caller
+ * @return GD_SUCCESS on success, gd_error otherwise
+ */
+gint make_valid_object_path_part(const gchar *str, char **path_part);
+
 static inline void _cleanup_fn_g_free_(void *p) {
 	g_free(*(gpointer *)p);
 }
