@@ -164,6 +164,18 @@ gadgetd_gadget_object_init(GadgetdGadgetObject *object)
 }
 
 /**
+ * @brief Gets the gd_gadget
+ * @param[in] gadget_object GadgetdGadgetObject
+ * @return pointer to gd_gadget, dont free
+ */
+struct gd_gadget *
+gadgetd_gadget_object_get_gadget(GadgetdGadgetObject *gadget_object)
+{
+	g_return_val_if_fail(GADGETD_IS_GADGET_OBJECT(gadget_object), NULL);
+	return gadget_object->gadget;
+}
+
+/**
  * @brief gadgetd gadget object get daemon object
  * @param[in] object GadgetdGadgetObject
  */

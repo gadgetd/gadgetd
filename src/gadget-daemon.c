@@ -207,7 +207,7 @@ gadget_daemon_constructed(GObject *object)
 
 	/* create dbus udc objects */
 	for (l = gd_udcs; l != NULL; l = l->next) {
-		udc_object = gadgetd_udc_object_new((usbg_udc *)(l->data));
+		udc_object = gadgetd_udc_object_new((usbg_udc *)(l->data), daemon);
 		g_dbus_object_manager_server_export(gadget_daemon_get_object_manager(daemon),
 					    G_DBUS_OBJECT_SKELETON(udc_object));
 	}

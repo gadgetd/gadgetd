@@ -31,8 +31,9 @@ typedef struct _GadgetdUdcObject GadgetdUdcObject;
 #define GADGETD_UDC_OBJECT(o)           (G_TYPE_CHECK_INSTANCE_CAST ((o), GADGETD_TYPE_UDC_OBJECT, GadgetdUdcObject))
 #define GADGETD_IS_UDC_OBJECT(o)        (G_TYPE_CHECK_INSTANCE_TYPE ((o), GADGETD_TYPE_UDC_OBJECT))
 
-GType            gadgetd_udc_object_get_type (void) G_GNUC_CONST;
-GadgetdUdcObject *gadgetd_udc_object_new     (usbg_udc *u);
+GType             gadgetd_udc_object_get_type (void) G_GNUC_CONST;
+GadgetdUdcObject *gadgetd_udc_object_new       (usbg_udc *u, GadgetDaemon *daemon);
+GadgetDaemon     *gadgetd_udc_object_get_daemon(GadgetdUdcObject *object);
 usbg_udc         *gadgetd_udc_object_get_udc(GadgetdUdcObject *object);
 gchar            *gadgetd_udc_object_get_enabled_gadget_path(GadgetdUdcObject *object);
 gint              gadgetd_udc_object_set_enabled_gadget_path(GadgetdUdcObject *object, const gchar *path);

@@ -23,6 +23,8 @@
 #include <gadgetd-gdbus-codegen.h>
 #include <gadgetd-udc-iface.h>
 #include <gadgetd-core.h>
+#include <gadgetd-udc-object.h>
+#include <gadgetd-gadget-object.h>
 
 #include <string.h>
 #ifdef G_OS_UNIX
@@ -49,6 +51,8 @@ enum
 	PROP_UDC_OBJ,
 	PROP_UDC_ENABLED_GD
 } prop_config_iface;
+
+static const char udc_iface[] = "org.usb.device.UDC";
 
 static void gadgetd_udc_device_iface_init(GadgetdUDCIface *iface);
 
@@ -200,10 +204,75 @@ handle_enable_gadget(GadgetdUDC               *object,
 			GDBusMethodInvocation *invocation,
 			const gchar           *gadget_path)
 {
-	/* TODO add enable gadget handler */
+	GadgetdUDCDevice *udc_device = GADGETD_UDC_DEVICE(object);
+	gint usbg_ret = USBG_SUCCESS;
+	GVariant *result;
+	const gchar *msg;
+	GadgetDaemon *daemon;
+	GDBusObjectManager *object_manager;
+	GadgetdGadgetObject *gadget_object;
+	struct gd_gadget *gd_gadget;
+	usbg_udc *u;
+	gint g_ret = 0;
+
 	INFO("enable gadget handler");
 
+	daemon = gadgetd_udc_object_get_daemon(udc_device->udc_obj);
+	if (daemon == NULL) {
+		msg = "Failed to get daemon";
+		goto error;
+	}
+
+	object_manager = G_DBUS_OBJECT_MANAGER(gadget_daemon_get_object_manager(daemon));
+	if (object_manager == NULL) {
+		msg = "Failed to get object manager";
+		goto error;
+	}
+
+	gadget_object = GADGETD_GADGET_OBJECT(g_dbus_object_manager_get_object(object_manager,
+									       gadget_path));
+	if (gadget_object == NULL) {
+		msg = "Failed to get gadget object";
+		goto error;
+	}
+
+	gd_gadget = gadgetd_gadget_object_get_gadget(gadget_object);
+	if (gd_gadget == NULL) {
+		msg = "Failed to get gadget";
+		goto error;
+	}
+
+	u = gadgetd_udc_object_get_udc(udc_device->udc_obj);
+	if (u == NULL) {
+		msg = "Failed to get udc";
+		goto error;
+	}
+
+	usbg_ret = usbg_enable_gadget(gd_gadget->g, u);
+	if (usbg_ret != USBG_SUCCESS) {
+		msg = "Failed to enable gadget";
+		goto error;
+	}
+
+	g_ret = gadgetd_udc_object_set_enabled_gadget_path(udc_device->udc_obj, gadget_path);
+	if (g_ret != 0) {
+		msg = "Cant set enabled gadget path, gadget will not be enabled";
+		/* we can't handle possible errors so we ignore them */
+		usbg_disable_gadget(gd_gadget->g);
+		goto error;
+	}
+
+	result = g_variant_new("(b)", TRUE);
+	g_dbus_method_invocation_return_value(invocation, result);
+
 	return TRUE;
+error:
+	ERROR("%s", msg);
+	g_dbus_method_invocation_return_dbus_error(invocation,
+			udc_iface,
+			msg);
+
+	return FALSE;
 }
 
 /**

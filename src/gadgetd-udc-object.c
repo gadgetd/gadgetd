@@ -34,6 +34,7 @@ typedef struct _GadgetdUdcObjectClass   GadgetdUdcObjectClass;
 struct _GadgetdUdcObject
 {
 	GadgetdObjectSkeleton parent_instance;
+	GadgetDaemon *daemon;
 
 	gchar *enabled_gadget_path;
 	usbg_udc *u;
@@ -51,6 +52,7 @@ enum
 {
 	PROP_0,
 	PROP_UDC_PTR,
+	PROP_DAEMON,
 } prop_udc_obj;
 
 /**
@@ -72,6 +74,10 @@ gadgetd_udc_object_set_property(GObject            *object,
 	case PROP_UDC_PTR:
 		g_assert(udc_object->u == NULL);
 		udc_object->u = g_value_get_pointer(value);
+		break;
+	case PROP_DAEMON:
+		g_assert(udc_object->daemon == NULL);
+		udc_object->daemon = g_value_get_object(value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
@@ -97,6 +103,18 @@ gadgetd_udc_object_get_property(GObject *object, guint property_id, GValue *valu
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
 		break;
 	}
+}
+
+/**
+ * @brief Gets the daemon
+ * @param[in] object GadgetdUdcObject
+ * @return GadgetDaemon, dont free
+ */
+GadgetDaemon *
+gadgetd_udc_object_get_daemon(GadgetdUdcObject *object)
+{
+	g_return_val_if_fail(GADGETD_IS_UDC_OBJECT(object), NULL);
+	return object->daemon;
 }
 
 /**
@@ -247,6 +265,16 @@ gadgetd_udc_object_class_init(GadgetdUdcObjectClass *klass)
                                                        G_PARAM_READABLE |
                                                        G_PARAM_WRITABLE |
                                                        G_PARAM_CONSTRUCT_ONLY));
+	g_object_class_install_property(gobject_class,
+                                   PROP_DAEMON,
+                                   g_param_spec_object("daemon",
+                                                       "Daemon",
+                                                       "daemon for the object",
+                                                       GADGET_TYPE_DAEMON,
+                                                       G_PARAM_READABLE |
+                                                       G_PARAM_WRITABLE |
+                                                       G_PARAM_CONSTRUCT_ONLY |
+                                                       G_PARAM_STATIC_STRINGS));
 }
 
 /**
@@ -255,13 +283,15 @@ gadgetd_udc_object_class_init(GadgetdUdcObjectClass *klass)
  * @return GadgetdUdcObject object
  */
 GadgetdUdcObject *
-gadgetd_udc_object_new(usbg_udc *u)
+gadgetd_udc_object_new(usbg_udc *u, GadgetDaemon *daemon)
 {
 	g_return_val_if_fail(u != NULL, NULL);
+	g_return_val_if_fail(daemon != NULL, NULL);
 
 	GadgetdUdcObject *object;
 	object = g_object_new(GADGETD_TYPE_UDC_OBJECT,
 			     "udc-pointer", u,
+			     "daemon",daemon,
 			      NULL);
 
 	return object;
