@@ -15,6 +15,9 @@
  * limitations under the License.
  */
 
+#include <glib-unix.h>
+#include <string.h>
+
 #include "gadgetd-core-func.h"
 #include "gadgetd-introspection.h"
 #include "gadgetd-ffs-func.h"
@@ -200,6 +203,84 @@ error:
 	return ret;
 }
 
+/* Compatible layer for old (<2.36 glib version). Since 2.36 g_unix_fd_add()
+ * should be used
+ */
+#if !(GLIB_CHECK_VERSION(2, 36, 0))
+
+struct gd_ffs_func_source {
+	GSource source;
+	GPollFD pfd;
+};
+
+static gboolean
+gd_ffs_func_source_prepare(GSource *source, gint *timeout)
+{
+	return FALSE;
+}
+
+static gboolean
+gd_ffs_func_source_check(GSource *source)
+{
+	struct gd_ffs_func_source *src = (typeof(src))source;
+	return src->pfd.revents != 0;
+}
+
+static gboolean
+gd_ffs_func_source_dispatch(GSource *source, GSourceFunc callback,
+			    gpointer user_data)
+{
+	gboolean (*func)(gint, GIOCondition, gpointer) = (typeof(func))callback;
+	struct gd_ffs_func_source *src = (typeof(src))source;
+	if (!callback) {
+		ERROR("callback not set");
+		return FALSE;
+	}
+
+	return func(src->pfd.fd, src->pfd.revents, user_data);
+}
+
+static void
+gd_ffs_func_source_finalize(GSource *source)
+{
+	/* nop */
+}
+
+#endif /* GLIB_CHECK_VERSION() */
+/* ************************************************************************* */
+
+gboolean gd_ffs_read_event(gint fd, GIOCondition condition, gpointer user_data)
+{
+	struct gd_ffs_func *func = (typeof(func)) user_data;
+	struct usb_functionfs_event event;
+	gboolean poll_again = FALSE;
+	gint ret;
+
+	if (condition & ~G_IO_IN) {
+		ERROR("Unexpected event received from poll");
+		goto out;
+	}
+
+	ret = read(func->ep0_fd, &event, sizeof(event));
+	if (ret < sizeof(event)) {
+		ERROR("Unable to read event from ffs");
+		goto out;
+	}
+		INFO("Event %d", event.type);
+	ret = gd_ffs_received_event(func, event.type);
+	if (ret > 0) {
+		INFO("FFS service started. PID: %d", func->pid);
+	} else if (ret < 0) {
+		ERROR("Error while processing FFS event");
+	} else {
+		/* 0 means that this event didn't cause service startup */
+		poll_again = TRUE;
+	}
+
+out:
+	return poll_again;
+}
+
 static int
 gd_create_ffs_func(struct gd_gadget *g, struct gd_function_type *t,
 		   const char *instance, struct gd_function **function)
@@ -209,6 +290,8 @@ gd_create_ffs_func(struct gd_gadget *g, struct gd_function_type *t,
 	int ret;
 	struct gd_ffs_func *func = NULL;
 	struct gd_function *f;
+	const char *instance_prefix;
+	char _cleanup_free_ *usbg_instance_name;
 
 	type = container_of(t, struct gd_ffs_func_type, reg_type);
 	func = g_malloc(sizeof(*func));
@@ -226,8 +309,21 @@ gd_create_ffs_func(struct gd_gadget *g, struct gd_function_type *t,
 		goto error;
 	}
 
+	instance_prefix = strchr(t->name, '.');
+	if (!instance_prefix) {
+		ret = USBG_ERROR_OTHER_ERROR;
+		goto error;
+	}
+
+	++instance_prefix;
+	usbg_instance_name = g_strdup_printf("%s.%s", instance_prefix, instance);
+	if (!usbg_instance_name) {
+		ret = USBG_ERROR_NO_MEM;
+		goto error;
+	}
+
 	usbg_ret = usbg_create_function(g->g, F_FFS,
-					instance, NULL, &(f->f));
+					usbg_instance_name, NULL, &(f->f));
 	if (usbg_ret != USBG_SUCCESS) {
 		ret = usbg_ret;
 		goto error;
@@ -244,6 +340,39 @@ gd_create_ffs_func(struct gd_gadget *g, struct gd_function_type *t,
 	f->function_group = t->function_group;
 	g->funcs = g_list_append(g->funcs, f);
 	ret = GD_SUCCESS;
+
+	/* add to poll */
+	/* Currently value is ignored but it should be stored in gd_ffs_func */
+
+	/* For glib >= 2.36 this one should be used: */
+#if (GLIB_CHECK_VERSION(2, 36, 0))
+	g_unix_fd_add(func->ep0_fd, G_IO_IN,
+		      (GUnixFDSourceFunc)gd_ffs_read_event, func);
+#else
+	   /* For glib < 2.36 use our own event source */
+	   {
+		   static GSourceFuncs source_funcs = {
+			   .prepare = gd_ffs_func_source_prepare,
+			   .check = gd_ffs_func_source_check,
+			   .dispatch = gd_ffs_func_source_dispatch,
+			   .finalize = gd_ffs_func_source_finalize,
+		   };
+		   struct gd_ffs_func_source *src;
+		   GSource *source;
+
+		   source = g_source_new(&source_funcs, sizeof(*src));
+		   src = (struct gd_ffs_func_source *) source;
+		   src->pfd.fd = func->ep0_fd;
+		   src->pfd.events = G_IO_IN;
+		   src->pfd.revents = 0;
+		   g_source_add_poll(source, &(src->pfd));
+		   g_source_set_callback(source, (GSourceFunc)gd_ffs_read_event,
+					 func, NULL);
+		   /* collect id from this function */
+		   g_source_attach(source, NULL);
+		   g_source_unref(source);
+	   }
+#endif /* GLIB_CHECK_VERSION */
 out:
 	return ret;
 error:
