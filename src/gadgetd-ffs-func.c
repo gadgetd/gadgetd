@@ -597,8 +597,11 @@ run_ffs_instance(struct gd_ffs_func *inst)
 	} else if (likely(ret > 0)) {
 		inst->pid = ret;
 		inst->state = FFS_INSTANCE_RUNNING;
-		close(inst->ep0_fd);
-		inst->ep0_fd = -1;
+		/* We don't close our descriptor to keep gadget alive
+		 *  even when ffs damon has been killed. This allows
+		 *  gadget with many functions to be operational for some
+		 *  time untill host causes reset
+		 */
 	}
 
 	return ret;
