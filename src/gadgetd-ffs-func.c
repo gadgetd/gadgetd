@@ -179,7 +179,7 @@ gd_ffs_prepare_instance(struct gd_ffs_func_type *srv, struct gd_ffs_func *func)
 		goto out;
 
 	func->mount_dir = mount_ffs_instance(srv->reg_type.name,
-					     func->func.instance);
+					     usbg_get_function_instance(func->func.f));
 	if (!func->mount_dir)
 		goto err_unref;
 
