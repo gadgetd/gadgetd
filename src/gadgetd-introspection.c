@@ -1417,8 +1417,16 @@ gd_read_gd_ffs_func_types_from_dir(const char *path, struct gd_ffs_func_type ***
 		(*srvs)[i] = srv;
 	}
 
+	for (i = 0; i < num; i++)
+		free(namelist[i]);
+	free(namelist);
+
 	return num;
 out:
+	for (i = 0; i < num; i++)
+		free(namelist[i]);
+	free(namelist);
+
 	if (*srvs)
 		for (i = 0; i < num; i++)
 			free((*srvs)[i]);
