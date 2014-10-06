@@ -44,7 +44,8 @@
        <arg type="b" name="function_removed" direction="out"/>
    </method>
     <method name="FindFunctionByName">
-       <arg type="s" name="function_name" direction="in"/>
+       <arg type="s" name="type" direction="in"/>
+       <arg type="s" name="instance" direction="in"/>
        <arg type="o" name="function_path" direction="out"/>
    </method>
   </interface>

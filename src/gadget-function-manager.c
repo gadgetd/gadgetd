@@ -346,10 +346,73 @@ handle_remove_function(GadgetdGadgetFunctionManager	*object,
 static gboolean
 handle_find_function_by_name(GadgetdGadgetFunctionManager	*object,
 		      GDBusMethodInvocation			*invocation,
-		      const gchar				*function_name)
+		      const gchar				*type,
+		      const gchar				*instance)
 {
-	/* TODO add find function by name handler*/
+	const gchar *path = NULL;
+	const gchar *msg;
+	gchar _cleanup_g_free_ *function_name = NULL;
+	GadgetDaemon *daemon;
+	GDBusObjectManager *object_manager;
+	GList *objects;
+	GList *l;
+	struct gd_function *gd_func;
+	GadgetFunctionManager *func_manager = GADGET_FUNCTION_MANAGER(object);
+
 	INFO("find function by name handler");
+
+	daemon = gadget_function_manager_get_daemon(GADGET_FUNCTION_MANAGER(object));
+	if (daemon == NULL) {
+		msg = "Failed to get daemon";
+		goto out2;
+	}
+
+	object_manager = G_DBUS_OBJECT_MANAGER(gadget_daemon_get_object_manager(daemon));
+	if (object_manager == NULL) {
+		ERROR("Failed to get object manager");
+		goto out2;
+	}
+
+	msg = "Failed to find function";
+	objects = g_dbus_object_manager_get_objects(object_manager);
+	for (l = objects; l != NULL; l = l->next)
+	{
+		GadgetdObject *object = GADGETD_OBJECT (l->data);
+		path = g_dbus_object_get_object_path(G_DBUS_OBJECT(object));
+		if (!GADGETD_IS_FUNCTION_OBJECT(G_DBUS_OBJECT(object)) ||
+					!g_str_has_prefix(path, func_manager->gadget_path))
+			continue;
+
+		gd_func = gadgetd_function_object_get_function(GADGETD_FUNCTION_OBJECT(object));
+		if (gd_func == NULL) {
+			msg = "Failed to get function";
+			break;
+		}
+		if (g_strcmp0(gd_func->type, type) == 0 && (strcmp(gd_func->instance, instance)== 0)) {
+			path = g_dbus_object_get_object_path(G_DBUS_OBJECT(object));
+			msg = NULL;
+			goto out;
+		}
+	}
+
+	if (path == NULL)
+		msg = "Failed to find function";
+
+	g_list_foreach(objects, (GFunc)g_object_unref, NULL);
+	g_list_free(objects);
+
+out2:
+	if (msg != NULL) {
+		ERROR("%s", msg);
+		g_dbus_method_invocation_return_dbus_error(invocation,
+				func_manager_iface,
+				msg);
+		return TRUE;
+	}
+out:
+	/* send gadget path */
+	g_dbus_method_invocation_return_value(invocation,
+				      g_variant_new("(o)", path));
 
 	return TRUE;
 }
