@@ -294,10 +294,75 @@ handle_find_gadget_by_name(GadgetdGadgetManager	*object,
 			    GDBusMethodInvocation	*invocation,
 			    const gchar 		*gadget_name)
 {
-	/*TODO handle find gadget by name*/
+	const gchar *path = NULL;
+	const gchar *msg = NULL;
+	GadgetDaemon *daemon;
+	GDBusObjectManager *object_manager;
+	GList *objects;
+	GList *l;
+	struct gd_gadget *gd_gadget;
+	const gchar *g_name = NULL;
+
 	INFO("find gadget by name handler");
 
+	daemon = gadget_manager_get_daemon(GADGET_MANAGER(object));
+	if (daemon == NULL) {
+		msg = "Failed to get daemon";
+		goto error;
+	}
+
+	object_manager = G_DBUS_OBJECT_MANAGER(gadget_daemon_get_object_manager(daemon));
+	if (object_manager == NULL) {
+		msg = "Failed to get object manager";
+		goto error;
+	}
+
+	msg = "Failed to find gadget";
+	objects = g_dbus_object_manager_get_objects(object_manager);
+	for (l = objects; l != NULL; l = l->next)
+	{
+		GadgetdObject *object = GADGETD_OBJECT(l->data);
+		if (!GADGETD_IS_GADGET_OBJECT(G_DBUS_OBJECT(object)))
+			continue;
+
+		gd_gadget = gadgetd_gadget_object_get_gadget(GADGETD_GADGET_OBJECT(object));
+		if (gd_gadget == NULL) {
+			msg = "Failed to get gadget";
+			break;
+		}
+		g_name = usbg_get_gadget_name(gd_gadget->g);
+		if (g_name == NULL) {
+			msg = "Failed to get gadget name";
+			break;
+		}
+		if (g_strcmp0(gadget_name, g_name) == 0) {
+			path = g_dbus_object_get_object_path(G_DBUS_OBJECT(object));
+			msg = NULL;
+			goto out;
+		}
+	}
+
+	if (path == NULL)
+		msg = "Failed to find gadget";
+
+out:
+	g_list_foreach(objects, (GFunc)g_object_unref, NULL);
+	g_list_free(objects);
+error:
+	if (msg != NULL) {
+		ERROR("%s", msg);
+		g_dbus_method_invocation_return_dbus_error(invocation,
+				manager_iface,
+				msg);
+		return TRUE;
+	}
+
+	/* send gadget path */
+	g_dbus_method_invocation_return_value(invocation,
+				      g_variant_new("(o)", path));
+
 	return TRUE;
+
 }
 
 /**
