@@ -14,7 +14,7 @@
        <arg type="s" name="gadget_name" direction="in"/>
        <arg type="o" name="gadget_path" direction="out"/>
    </method>
-   <method name="ListAvaliableFunctions">
+   <method name="ListAvailableFunctions">
        <arg type="as" name="function_list" direction="out"/>
    </method>
   </interface>

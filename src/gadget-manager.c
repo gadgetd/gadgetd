@@ -307,7 +307,7 @@ handle_find_gadget_by_name(GadgetdGadgetManager	*object,
  * @return true if metod handled
  */
 static gboolean
-handle_list_avaliable_functions(GadgetdGadgetManager	*object,
+handle_list_available_functions(GadgetdGadgetManager	*object,
 			        GDBusMethodInvocation	*invocation)
 {
 	GArray *funcs;
@@ -343,5 +343,5 @@ gadget_manager_iface_init(GadgetdGadgetManagerIface *iface)
 	iface->handle_create_gadget = handle_create_gadget;
 	iface->handle_remove_gadget = handle_remove_gadget;
 	iface->handle_find_gadget_by_name = handle_find_gadget_by_name;
-	iface->handle_list_avaliable_functions = handle_list_avaliable_functions;
+	iface->handle_list_available_functions = handle_list_available_functions;
 }
