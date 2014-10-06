@@ -431,6 +431,8 @@ gd_register_user_funcs()
 		 */
 
 	}
+
+	free(types);
 out:
 	return ret;
 error:
