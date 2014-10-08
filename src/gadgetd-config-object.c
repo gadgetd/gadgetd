@@ -89,6 +89,30 @@ gadgetd_config_object_get_config(GadgetdConfigObject *config_object)
 }
 
 /**
+ * @brief Get config id
+ * @param[in] config_object GadgetdConfigObject
+ * @return cfg usbg_config
+ */
+gint
+gadgetd_config_object_get_config_id(GadgetdConfigObject *config_object)
+{
+	g_return_val_if_fail(GADGETD_IS_CONFIG_OBJECT(config_object), -1);
+	return config_object->config_id;
+}
+
+/**
+ * @brief Get config label
+ * @param[in] config_object GadgetdConfigObject
+ * @return cfg usbg_config
+ */
+const gchar *
+gadgetd_config_object_get_config_label(GadgetdConfigObject *config_object)
+{
+	g_return_val_if_fail(GADGETD_IS_CONFIG_OBJECT(config_object), NULL);
+	return config_object->config_label;
+}
+
+/**
  * @brief Gets the daemon
  * @param[in] object GadgetdConfigObject
  * @return GadgetDaemon, dont free

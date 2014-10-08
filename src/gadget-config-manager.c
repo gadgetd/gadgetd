@@ -327,12 +327,83 @@ handle_remove_config(GadgetdGadgetConfigManager		*object,
  * @return true if metod handled
  */
 static gboolean
-handle_find_config_by_id(GadgetdGadgetConfigManager	*object,
+handle_find_config_by_name(GadgetdGadgetConfigManager	*object,
 			 GDBusMethodInvocation		*invocation,
-			 gint				config_id)
+			 gint config_id, const gchar *config_label)
 {
-	/* TODO add find config by name handler*/
-	INFO("find config by name handler");
+
+	const gchar *path = NULL;
+	const gchar *msg = NULL;
+	gchar _cleanup_g_free_ *function_name = NULL;
+	GadgetDaemon *daemon;
+	GDBusObjectManager *object_manager;
+	GList *objects;
+	GList *l;
+	gint cfg_id;
+	const gchar *cfg_label = NULL;
+	GadgetConfigManager *config_manager = GADGET_CONFIG_MANAGER(object);
+
+	INFO("find config by id handler");
+
+	daemon = gadget_config_manager_get_daemon(GADGET_CONFIG_MANAGER(object));
+	if (daemon == NULL) {
+		msg = "Failed to get daemon";
+		goto error;
+	}
+
+	object_manager = G_DBUS_OBJECT_MANAGER(gadget_daemon_get_object_manager(daemon));
+	if (object_manager == NULL) {
+		ERROR("Failed to get object manager");
+		goto error;
+	}
+
+	msg = "Failed to find config";
+	objects = g_dbus_object_manager_get_objects(object_manager);
+
+	if (g_strcmp0(config_label, "") == 0) {
+	/* we must send empty string via dbus even if it is not set at client side */
+		config_label = NULL;
+	}
+
+	for (l = objects; l != NULL; l = l->next)
+	{
+		GadgetdObject *object = GADGETD_OBJECT (l->data);
+		path = g_dbus_object_get_object_path(G_DBUS_OBJECT(object));
+		if (!GADGETD_IS_CONFIG_OBJECT(G_DBUS_OBJECT(object)) ||
+				!g_str_has_prefix(path, config_manager->gadget_path))
+			continue;
+
+		cfg_id = gadgetd_config_object_get_config_id(GADGETD_CONFIG_OBJECT(object));
+		cfg_label = gadgetd_config_object_get_config_label(GADGETD_CONFIG_OBJECT(object));
+		if (cfg_label == NULL) {
+			msg = "Failed to get config label";
+			break;
+		}
+		if ( config_id == cfg_id && (config_label == NULL || g_strcmp0(cfg_label, config_label)== 0)) {
+			path = g_dbus_object_get_object_path(G_DBUS_OBJECT(object));
+			msg = NULL;
+			goto out;
+		}
+	}
+
+	if (path == NULL)
+		msg = "Failed to find config";
+out:
+	g_list_foreach(objects, (GFunc)g_object_unref, NULL);
+	g_list_free(objects);
+
+error:
+	if (msg != NULL) {
+		ERROR("%s", msg);
+		g_dbus_method_invocation_return_dbus_error(invocation,
+				cfg_manager_iface,
+				msg);
+		return TRUE;
+	}
+
+	/* send gadget path */
+	g_dbus_method_invocation_return_value(invocation,
+				      g_variant_new("(o)", path));
 
 	return TRUE;
 }
@@ -346,6 +417,6 @@ gadget_config_manager_iface_init(GadgetdGadgetConfigManagerIface *iface)
 {
 	iface->handle_create_config = handle_create_config;
 	iface->handle_remove_config = handle_remove_config;
-	iface->handle_find_config_by_id = handle_find_config_by_id;
+	iface->handle_find_config_by_name = handle_find_config_by_name;
 }
 

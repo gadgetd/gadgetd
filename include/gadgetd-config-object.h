@@ -36,6 +36,8 @@ GadgetdConfigObject *gadgetd_config_object_new(const gchar *gadget_path, gint co
 					       GadgetDaemon *daemon);
 usbg_config  *gadgetd_config_object_get_config(GadgetdConfigObject *config_object);
 GadgetDaemon *gadgetd_config_object_get_daemon(GadgetdConfigObject *config_object);
+gint          gadgetd_config_object_get_config_id(GadgetdConfigObject *config_object);
+const gchar  *gadgetd_config_object_get_config_label(GadgetdConfigObject *config_object);
 G_END_DECLS
 
 #endif /* GADGETD_CONFIG_OBJECT_H */

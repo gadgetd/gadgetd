@@ -66,8 +66,9 @@
        <arg type="o" name="config_path" direction="in"/>
        <arg type="b" name="config_removed" direction="out"/>
    </method>
-    <method name="FindConfigById">
+    <method name="FindConfigByName">
        <arg type="i" name="config_id" direction="in"/>
+       <arg type="s" name="config_label" direction="in"/>
        <arg type="o" name="config_path" direction="out"/>
    </method>
   </interface>
