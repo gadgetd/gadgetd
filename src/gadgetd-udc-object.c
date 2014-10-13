@@ -178,26 +178,6 @@ gadgetd_udc_object_init(GadgetdUdcObject *object)
 }
 
 /**
- * @brief get proper udc name
- * @param[in] udc_object GadgetdUdcObject
- * @param[out] name proper name
- */
-static void
-get_udc_name(GadgetdUdcObject *udc_object, gchar **name)
-{
-	char tmp_name[256];
-	int i=0;
-
-	usbg_cpy_udc_name(udc_object->u, tmp_name, sizeof(tmp_name));
-
-	for (i = 0; tmp_name[i] != '\0'; i++)
-		if (tmp_name[i] == '.')
-			tmp_name[i] = '/';
-
-	*name = strdup(tmp_name);
-}
-
-/**
  * @brief gadgetd gadget object constructed
  * @param[in] object GObject
  */
@@ -206,13 +186,24 @@ gadgetd_udc_object_constructed(GObject *object)
 {
 	GadgetdUdcObject *udc_object = GADGETD_UDC_OBJECT(object);
 	gchar _cleanup_g_free_ *path = NULL;
-	gchar _cleanup_g_free_ *udc_name = NULL;
+	const gchar *udc_name = NULL;
+	gchar _cleanup_g_free_ *valid_udc_name = NULL;
 	GadgetdUDCDevice *udc_iface;
+	int ret;
 
-	get_udc_name(udc_object, &udc_name);
+	udc_name = usbg_get_udc_name(udc_object->u);
+	if (udc_name == NULL) {
+		ERROR("Unable to get udc name");
+		return;
+	}
 
-	if (udc_name != NULL)
-		path = g_strdup_printf("%s/UDC/%s", gadgetd_path, udc_name);
+	ret = make_valid_object_path_part(udc_name, &valid_udc_name);
+	if (ret != GD_SUCCESS) {
+		ERROR("Unable to create valid path part for udc");
+		return;
+	}
+
+	path = g_strdup_printf("%s/UDC/%s", gadgetd_path, valid_udc_name);
 
 	udc_iface = gadgetd_udc_device_new(udc_object);
 
