@@ -36,7 +36,6 @@ struct _GadgetdUDCDevice
 	GadgetdUDCSkeleton parent_instance;
 
 	GadgetdUdcObject *udc_obj;
-	struct gd_gadget *gd_gadget;
 };
 
 struct _GadgetdUDCDeviceClass
