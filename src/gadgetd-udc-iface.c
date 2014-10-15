@@ -285,8 +285,44 @@ static gboolean
 handle_disable_gadget(GadgetdUDC            *object,
 		      GDBusMethodInvocation *invocation)
 {
-	/* TODO add disable gadget handler */
+	GadgetdUDCDevice *udc_device = GADGETD_UDC_DEVICE(object);
+	gint usbg_ret = USBG_SUCCESS;
+	GVariant *result;
+	const gchar *msg;
+	usbg_udc *u;
+	usbg_gadget *g;
+
 	INFO("disable gadget handler");
+
+	u = gadgetd_udc_object_get_udc(udc_device->udc_obj);
+	if (u == NULL) {
+		msg = "Failed to get udc";
+		goto error;
+	}
+
+	g = usbg_get_udc_gadget(u);
+	if (g == NULL) {
+		msg = "No gadget enabled";
+		goto error;
+	}
+
+	usbg_ret = usbg_disable_gadget(g);
+	if (usbg_ret != USBG_SUCCESS) {
+		msg = "Failed to disable gadget";
+		goto error;
+	}
+
+	gadgetd_udc_object_set_enabled_gadget_path(udc_device->udc_obj, NULL);
+
+	result = g_variant_new("(b)", TRUE);
+	g_dbus_method_invocation_return_value(invocation, result);
+
+	return TRUE;
+error:
+	ERROR("%s", msg);
+	g_dbus_method_invocation_return_dbus_error(invocation,
+			udc_iface,
+			msg);
 
 	return TRUE;
 }
