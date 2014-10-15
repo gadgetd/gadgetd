@@ -271,7 +271,7 @@ error:
 			udc_iface,
 			msg);
 
-	return FALSE;
+	return TRUE;
 }
 
 /**

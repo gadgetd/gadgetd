@@ -261,7 +261,7 @@ err:
 	g_dbus_method_invocation_return_dbus_error(invocation,
 			manager_iface,
 			msg);
-	return FALSE;
+	return TRUE;
 }
 
 /**
@@ -395,7 +395,7 @@ error:
 						   "GD_ERROR_NO_MEM");
 
 	g_array_free(funcs, TRUE);
-	return FALSE;
+	return TRUE;
 }
 
 /**

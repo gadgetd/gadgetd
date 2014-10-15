@@ -270,7 +270,7 @@ error:
 	result = g_variant_new("(b)", FALSE);
 	g_dbus_method_invocation_return_value(invocation, result);
 
-	return FALSE;
+	return TRUE;
 }
 
 /**

@@ -298,7 +298,7 @@ err:
 	g_dbus_method_invocation_return_dbus_error(invocation,
 			cfg_manager_iface,
 			msg);
-	return FALSE;
+	return TRUE;
 }
 
 /**
