@@ -259,11 +259,7 @@ handle_create_function(GadgetdGadgetFunctionManager	*object,
 
 	daemon = gadget_function_manager_get_daemon(GADGET_FUNCTION_MANAGER(object));
 
-	/* TODO add create function handler */
 	INFO("handled create function");
-
-	if (!instance)
-		return FALSE;
 
 	if (gadget == NULL || gadget_name == NULL) {
 		msg = "Unable to get gadget";
