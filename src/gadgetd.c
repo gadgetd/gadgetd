@@ -53,7 +53,7 @@ usage() {
 		"\n");
 }
 
-static int
+static void
 parse_cmdline(int argc, char * const argv[], struct gd_config *pconfig)
 {
 	int opt = 0;
@@ -80,8 +80,6 @@ parse_cmdline(int argc, char * const argv[], struct gd_config *pconfig)
 			exit(opt == 'h' ? GD_SUCCESS : GD_ERROR_INVALID_PARAM);
 		}
 	}
-
-	return 0;
 }
 
 static void
