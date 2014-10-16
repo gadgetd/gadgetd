@@ -45,14 +45,12 @@ GList *gd_udcs;
 
 static void
 usage() {
-
 	fprintf(stdout,
 		"\nUsage: gadgetd [option]...\n"
 		"\n"
 		"  -c [file path] custom config file location\n"
 		"  -h display this help screen\n"
 		"\n");
-	exit(GD_SUCCESS);
 }
 
 static int
@@ -77,10 +75,9 @@ parse_cmdline(int argc, char * const argv[], struct gd_config *pconfig)
 				exit(GD_ERROR_FILE_OPEN_FAILED);
 			}
 			break;
-		case 'h':
-			usage();
 		default:
 			usage();
+			exit(opt == 'h' ? GD_SUCCESS : GD_ERROR_INVALID_PARAM);
 		}
 	}
 
