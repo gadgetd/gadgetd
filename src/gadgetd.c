@@ -45,12 +45,11 @@ GList *gd_udcs;
 
 static void
 usage() {
-	fprintf(stdout,
-		"\nUsage: gadgetd [option]...\n"
-		"\n"
-		"  -c [file path] custom config file location\n"
-		"  -h display this help screen\n"
-		"\n");
+	printf("\nUsage: gadgetd [option]...\n"
+	       "\n"
+	       "  -c [file path] custom config file location\n"
+	       "  -h display this help screen\n"
+	       "\n");
 }
 
 static void
