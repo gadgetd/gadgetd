@@ -1,5 +1,5 @@
 /*
- * gadgetd-strings.h
+ * gadget-strings.h
  * Copyright (c) 2012-2014 Samsung Electronics Co., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef __GADGET_STRINGS_H__
-#define __GADGET_STRINGS_H__
+#ifndef GADGET_STRINGS_H
+#define GADGET_STRINGS_H
 
 #include <glib-object.h>
 #include <gadgetd-core.h>
@@ -37,4 +37,4 @@ GadgetStrings                 *gadget_strings_new                   (struct gd_g
 
 G_END_DECLS
 
-#endif /* __GADGET_STRINGS_H__ */
+#endif /* GADGET_STRINGS_H */

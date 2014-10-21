@@ -49,4 +49,4 @@ char *gd_check_conf_file(char *file);
 int gd_parse_value(char *s, char **charptr, int *intptr,
                    const char *filename, int linenum);
 
-#endif /* GADGETD_CONFIG */
+#endif /* GADGETD_CONFIG_H */

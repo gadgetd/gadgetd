@@ -1,5 +1,5 @@
 /*
- * gadgetd-core-function.h
+ * gadgetd-core-func.h
  * Copyright (c) 2014 Samsung Electronics Co., Ltd.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef GADGETD_CORE_FUNCTION_H
-#define GADGETD_CORE_FUNCTION_H
+#ifndef GADGETD_CORE_FUNC_H
+#define GADGETD_CORE_FUNC_H
 
 #include "gadgetd-core.h"
 
@@ -55,5 +55,5 @@ int gd_unregister_func_t(struct gd_function_type *type);
  */
 void gd_unregister_all_func_t();
 
-#endif /* GADGETD_CORE_FUNCTION_H */
+#endif /* GADGETD_CORE_FUNC_H */
 

@@ -41,4 +41,4 @@ GadgetFunctionManager         *gadget_function_manager_new      (GadgetDaemon *d
 
 G_END_DECLS
 
-#endif /* GADGETD_FUNCTION_MANAGER_H */
+#endif /* GADGET_FUNCTION_MANAGER_H */

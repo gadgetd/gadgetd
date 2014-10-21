@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef GADGETD_FFS_FUNC_TYPE
-#define GADGETD_FFS_FUNC_TYPE
+#ifndef GADGETD_FFS_FUNC_TYPE_H
+#define GADGETD_FFS_FUNC_TYPE_H
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -131,4 +131,4 @@ int gd_ffs_fill_str(struct gd_ffs_func_type *srv, struct ffs_str_per_lang *str,
 
 void gd_ffs_put_str(struct gd_ffs_func_type *srv);
 
-#endif /* GADGETD_FFS_FUNC_TYPE */
+#endif /* GADGETD_FFS_FUNC_TYPE_H */

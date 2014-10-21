@@ -41,4 +41,4 @@ GadgetConfigManager *gadget_config_manager_new      (GadgetDaemon *daemon,
 
 G_END_DECLS
 
-#endif /* GADGETD_CONFIG_MANAGER_H */
+#endif /* GADGET_CONFIG_MANAGER_H */

@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-#ifndef GADGETD_OBJECT_H
-#define GADGETD_OBJECT_H
+#ifndef GADGETD_GADGET_OBJECT_H
+#define GADGETD_GADGET_OBJECT_H
 
 #include <gadget-daemon.h>
 #include "gadget-manager.h"
@@ -40,4 +40,4 @@ struct gd_gadget     *gadgetd_gadget_object_get_gadget(GadgetdGadgetObject *gadg
 
 G_END_DECLS
 
-#endif /* GADGETD_OBJECT_H */
+#endif /* GADGETD_GADGET_OBJECT_H */
