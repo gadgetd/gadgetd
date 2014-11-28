@@ -321,11 +321,11 @@ handle_find_gadget_by_name(GadgetdGadgetManager	*object,
 	objects = g_dbus_object_manager_get_objects(object_manager);
 	for (l = objects; l != NULL; l = l->next)
 	{
-		GadgetdObject *object = GADGETD_OBJECT(l->data);
-		if (!GADGETD_IS_GADGET_OBJECT(G_DBUS_OBJECT(object)))
+		GadgetdObject *gobj = GADGETD_OBJECT(l->data);
+		if (!GADGETD_IS_GADGET_OBJECT(G_DBUS_OBJECT(gobj)))
 			continue;
 
-		gd_gadget = gadgetd_gadget_object_get_gadget(GADGETD_GADGET_OBJECT(object));
+		gd_gadget = gadgetd_gadget_object_get_gadget(GADGETD_GADGET_OBJECT(gobj));
 		if (gd_gadget == NULL) {
 			msg = "Failed to get gadget";
 			break;
@@ -336,7 +336,7 @@ handle_find_gadget_by_name(GadgetdGadgetManager	*object,
 			break;
 		}
 		if (g_strcmp0(gadget_name, g_name) == 0) {
-			path = g_dbus_object_get_object_path(G_DBUS_OBJECT(object));
+			path = g_dbus_object_get_object_path(G_DBUS_OBJECT(gobj));
 			msg = NULL;
 			goto out;
 		}

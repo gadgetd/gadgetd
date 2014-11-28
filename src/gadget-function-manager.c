@@ -373,19 +373,19 @@ handle_find_function_by_name(GadgetdGadgetFunctionManager	*object,
 	objects = g_dbus_object_manager_get_objects(object_manager);
 	for (l = objects; l != NULL; l = l->next)
 	{
-		GadgetdObject *object = GADGETD_OBJECT (l->data);
-		path = g_dbus_object_get_object_path(G_DBUS_OBJECT(object));
-		if (!GADGETD_IS_FUNCTION_OBJECT(G_DBUS_OBJECT(object)) ||
+		GadgetdObject *gobj = GADGETD_OBJECT (l->data);
+		path = g_dbus_object_get_object_path(G_DBUS_OBJECT(gobj));
+		if (!GADGETD_IS_FUNCTION_OBJECT(G_DBUS_OBJECT(gobj)) ||
 					!g_str_has_prefix(path, func_manager->gadget_path))
 			continue;
 
-		gd_func = gadgetd_function_object_get_function(GADGETD_FUNCTION_OBJECT(object));
+		gd_func = gadgetd_function_object_get_function(GADGETD_FUNCTION_OBJECT(gobj));
 		if (gd_func == NULL) {
 			msg = "Failed to get function";
 			break;
 		}
 		if (g_strcmp0(gd_func->type, type) == 0 && (strcmp(gd_func->instance, instance)== 0)) {
-			path = g_dbus_object_get_object_path(G_DBUS_OBJECT(object));
+			path = g_dbus_object_get_object_path(G_DBUS_OBJECT(gobj));
 			msg = NULL;
 			goto out;
 		}

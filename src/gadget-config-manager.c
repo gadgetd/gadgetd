@@ -367,20 +367,20 @@ handle_find_config_by_name(GadgetdGadgetConfigManager	*object,
 
 	for (l = objects; l != NULL; l = l->next)
 	{
-		GadgetdObject *object = GADGETD_OBJECT (l->data);
-		path = g_dbus_object_get_object_path(G_DBUS_OBJECT(object));
-		if (!GADGETD_IS_CONFIG_OBJECT(G_DBUS_OBJECT(object)) ||
+		GadgetdObject *gobj = GADGETD_OBJECT (l->data);
+		path = g_dbus_object_get_object_path(G_DBUS_OBJECT(gobj));
+		if (!GADGETD_IS_CONFIG_OBJECT(G_DBUS_OBJECT(gobj)) ||
 				!g_str_has_prefix(path, config_manager->gadget_path))
 			continue;
 
-		cfg_id = gadgetd_config_object_get_config_id(GADGETD_CONFIG_OBJECT(object));
-		cfg_label = gadgetd_config_object_get_config_label(GADGETD_CONFIG_OBJECT(object));
+		cfg_id = gadgetd_config_object_get_config_id(GADGETD_CONFIG_OBJECT(gobj));
+		cfg_label = gadgetd_config_object_get_config_label(GADGETD_CONFIG_OBJECT(gobj));
 		if (cfg_label == NULL) {
 			msg = "Failed to get config label";
 			break;
 		}
 		if ( config_id == cfg_id && (config_label == NULL || g_strcmp0(cfg_label, config_label)== 0)) {
-			path = g_dbus_object_get_object_path(G_DBUS_OBJECT(object));
+			path = g_dbus_object_get_object_path(G_DBUS_OBJECT(gobj));
 			msg = NULL;
 			goto out;
 		}
