@@ -16,6 +16,11 @@
  */
 
 #include <usbg/usbg.h>
+#include <usbg/function/ms.h>
+#include <usbg/function/net.h>
+#include <usbg/function/ffs.h>
+#include <usbg/function/phonet.h>
+#include <usbg/function/midi.h>
 #include <stdio.h>
 #include <gio/gio.h>
 #include <gadgetd-common.h>
@@ -109,7 +114,15 @@ function_serial_attrs_get_property(GObject    *object,
 	FunctionSerialAttrs *serial_attrs = FUNCTION_SERIAL_ATTRS(object);
 	GadgetdFunctionObject *function_object;
 	usbg_function *f;
-	usbg_function_attrs f_attrs;
+	/* FIXME: find a better solution to a union here? */
+	union {
+		struct usbg_f_net_attrs net;
+		char *ffs_dev_name;
+		struct usbg_f_ms_attrs ms;
+		struct usbg_f_midi_attrs midi;
+		int serial_port_num;
+		char *phonet_ifname;
+	} f_attrs;
 
 	function_object = function_serial_attrs_get_function_object(serial_attrs);
 
@@ -128,7 +141,7 @@ function_serial_attrs_get_property(GObject    *object,
 
 	switch(property_id) {
 	case PROP_SERIAL_PORTNUM:
-		g_value_set_int(value, f_attrs.serial.port_num);
+		g_value_set_int(value, f_attrs.serial_port_num);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
