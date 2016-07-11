@@ -59,6 +59,8 @@
 
 /******************** Endpoints handling *******************************/
 
+extern int gd_get_ep_by_nmb(int nmb);
+
 static void display_event(struct usb_functionfs_event *event)
 {
 	static const char *const names[] = {
