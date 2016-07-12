@@ -16,6 +16,7 @@
  */
 
 #include <usbg/usbg.h>
+#include <usbg/function/serial.h>
 #include <stdio.h>
 #include <gio/gio.h>
 #include <gadgetd-common.h>
@@ -109,7 +110,8 @@ function_serial_attrs_get_property(GObject    *object,
 	FunctionSerialAttrs *serial_attrs = FUNCTION_SERIAL_ATTRS(object);
 	GadgetdFunctionObject *function_object;
 	usbg_function *f;
-	usbg_function_attrs f_attrs;
+	usbg_f_serial *f_serial;
+	int port_num;
 
 	function_object = function_serial_attrs_get_function_object(serial_attrs);
 
@@ -120,15 +122,16 @@ function_serial_attrs_get_property(GObject    *object,
 		return;
 	}
 
-	usbg_ret = usbg_get_function_attrs(f, &f_attrs);
-	if (usbg_ret != USBG_SUCCESS) {
-		ERROR("Cant get function attributes");
-		return;
-	}
+	f_serial = usbg_to_serial_function(f);
 
 	switch(property_id) {
 	case PROP_SERIAL_PORTNUM:
-		g_value_set_int(value, f_attrs.serial.port_num);
+		usbg_ret = usbg_f_serial_get_port_num(f_serial, &port_num);
+		if (usbg_ret != USBG_SUCCESS) {
+			ERROR("Cant get serial port number");
+			return;
+		}
+		g_value_set_int(value, port_num);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID(object, property_id, pspec);
