@@ -154,7 +154,7 @@ gd_register_kernel_funcs()
 	for (func = functions; *func; ++func) {
 		func_type = usbg_lookup_function_type(*func);
 		if (func_type < 0) {
-			/* If this function is not supported by libusbg we
+			/* If this function is not supported by libusbgx we
 			 * will be unable to create its instance but it's not
 			 * a reason to report an error. Just don't register it
 			 * so it won't be available through gadgetd API
