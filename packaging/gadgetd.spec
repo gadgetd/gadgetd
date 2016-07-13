@@ -9,7 +9,7 @@ Source1001:     gadgetd.manifest
 BuildRequires:  cmake
 BuildRequires:  pkg-config
 BuildRequires:  pkgconfig(glib-2.0)
-BuildRequires:  pkgconfig(libusbg)
+BuildRequires:  pkgconfig(libusbgx)
 
 %description
 Gadgetd is a tool for USB gadget management.

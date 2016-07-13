@@ -65,7 +65,7 @@ IF(BUILD_EXECUTABLE)
 	SET(DATADIR "${PREFIX}/share/${PACKAGE}/data")
 
 	SET(PKG_MODULES
-		libusbg
+		libusbgx
 		glib-2.0
 		libconfig
 		gio-unix-2.0
