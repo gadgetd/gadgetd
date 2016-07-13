@@ -50,6 +50,7 @@ int gd_get_ep_nmb(int ep_fd);
   You should not call this function with
   nmb >= gd_nmb_of_eps
  */
+extern int gd_get_ep_by_nmb(int nmb);
 inline int gd_get_ep_by_nmb(int nmb)
 {
 	return GD_ENDPOINT_FDS_START + nmb;
